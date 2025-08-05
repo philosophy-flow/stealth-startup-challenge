@@ -48,35 +48,188 @@ export function getNextState(currentState: CallState, response?: string): CallSt
 export function parseMood(speechResult: string): string {
     const lowerResult = speechResult.toLowerCase();
 
-    // Positive indicators
-    if (
-        lowerResult.includes("good") ||
-        lowerResult.includes("great") ||
-        lowerResult.includes("fine") ||
-        lowerResult.includes("well") ||
-        lowerResult.includes("wonderful") ||
-        lowerResult.includes("excellent")
-    ) {
-        return "positive";
+    // Positive indicators - comprehensive list for elderly patients
+    const positiveKeywords = [
+        "good",
+        "great",
+        "fine",
+        "well",
+        "wonderful",
+        "excellent",
+        "fantastic",
+        "happy",
+        "cheerful",
+        "blessed",
+        "thankful",
+        "grateful",
+        "optimistic",
+        "content",
+        "peaceful",
+        "comfortable",
+        "rested",
+        "energetic",
+        "lively",
+        "better",
+        "improving",
+        "positive",
+        "healthy",
+        "strong",
+        "capable",
+        "joyful",
+        "delighted",
+        "pleased",
+        "satisfied",
+        "relaxed",
+        "calm",
+        "refreshed",
+        "vigorous",
+        "spirited",
+        "upbeat",
+        "bright",
+        "super",
+    ];
+
+    // Negative indicators - comprehensive list for elderly patients
+    const negativeKeywords = [
+        "bad",
+        "sad",
+        "tired",
+        "sick",
+        "pain",
+        "hurt",
+        "awful",
+        "terrible",
+        "lonely",
+        "anxious",
+        "worried",
+        "depressed",
+        "down",
+        "unwell",
+        "poorly",
+        "aching",
+        "exhausted",
+        "weak",
+        "confused",
+        "frustrated",
+        "scared",
+        "uncomfortable",
+        "miserable",
+        "unhappy",
+        "distressed",
+        "struggling",
+        "difficult",
+        "hard",
+        "rough",
+        "suffering",
+        "fearful",
+        "nervous",
+        "upset",
+        "troubled",
+        "discouraged",
+        "hopeless",
+        "ill",
+        "fatigued",
+        "weary",
+        "drained",
+        "sore",
+        "stiff",
+        "dizzy",
+        "nauseous",
+    ];
+
+    // Neutral indicators
+    const neutralKeywords = [
+        "okay",
+        "alright",
+        "so-so",
+        "fair",
+        "moderate",
+        "usual",
+        "normal",
+        "same",
+        "regular",
+        "average",
+        "mediocre",
+        "not bad",
+        "not great",
+        "could be better",
+        "could be worse",
+        "managing",
+        "surviving",
+    ];
+
+    // Common elderly phrases that indicate mood
+    const positivePhrases = [
+        "can't complain",
+        "no complaints",
+        "doing well",
+        "feeling good",
+        "pretty good",
+        "quite well",
+        "very well",
+        "really good",
+    ];
+
+    const negativePhrases = [
+        "not so good",
+        "not well",
+        "not great",
+        "been better",
+        "having trouble",
+        "having a hard time",
+        "not feeling",
+        "under the weather",
+    ];
+
+    const neutralPhrases = [
+        "hanging in there",
+        "getting by",
+        "making do",
+        "getting along",
+        "same old",
+        "nothing new",
+        "status quo",
+    ];
+
+    // Check for phrases first (they're more specific)
+    for (const phrase of positivePhrases) {
+        if (lowerResult.includes(phrase)) {
+            return "positive";
+        }
     }
 
-    // Negative indicators
-    if (
-        lowerResult.includes("bad") ||
-        lowerResult.includes("sad") ||
-        lowerResult.includes("tired") ||
-        lowerResult.includes("sick") ||
-        lowerResult.includes("pain") ||
-        lowerResult.includes("hurt")
-    ) {
-        return "negative";
+    for (const phrase of negativePhrases) {
+        if (lowerResult.includes(phrase)) {
+            return "negative";
+        }
     }
 
-    // Neutral
-    if (lowerResult.includes("okay") || lowerResult.includes("alright") || lowerResult.includes("so-so")) {
-        return "neutral";
+    for (const phrase of neutralPhrases) {
+        if (lowerResult.includes(phrase)) {
+            return "neutral";
+        }
     }
 
+    // Then check individual keywords
+    for (const keyword of positiveKeywords) {
+        if (lowerResult.includes(keyword)) {
+            return "positive";
+        }
+    }
+
+    for (const keyword of negativeKeywords) {
+        if (lowerResult.includes(keyword)) {
+            return "negative";
+        }
+    }
+
+    for (const keyword of neutralKeywords) {
+        if (lowerResult.includes(keyword)) {
+            return "neutral";
+        }
+    }
+
+    // If still no match, return unknown
     return "unknown";
 }
 

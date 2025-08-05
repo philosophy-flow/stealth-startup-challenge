@@ -90,9 +90,10 @@ export async function POST(request: NextRequest) {
             })
             .eq("call_sid", callSid);
 
-        // Generate greeting
+        // Generate greeting and mood question
         const patientName = `${callRecord.patient.first_name} ${callRecord.patient.last_name}`;
         const greetingText = generatePrompt(CallState.GREETING, patientName);
+        const moodQuestion = generatePrompt(CallState.MOOD_CHECK, patientName);
 
         console.log("[VOICE] Generating TTS for greeting:", greetingText);
 
@@ -108,25 +109,39 @@ export async function POST(request: NextRequest) {
 
             console.log("[VOICE] TTS generated, URL:", fullAudioUrl);
 
-            // Add greeting to transcript
+            // Add greeting and mood question to transcript
             await supabaseAdmin
                 .from("calls")
                 .update({
                     response_data: {
                         ...callRecord.response_data,
                         patient_name: patientName,
-                        call_transcript: `System: ${greetingText}\n`,
+                        call_transcript: `System: ${greetingText}\nSystem: ${moodQuestion}\n`,
                     },
                 })
                 .eq("call_sid", callSid);
 
-            // Generate TwiML with audio and gather for mood check
+            // Generate TwiML with greeting AND mood question
             const nextAction = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/mood_check`;
-            const twiml = generatePlayAndGatherTwiML(
-                fullAudioUrl,
-                nextAction,
-                greetingText // Fallback text if audio fails
-            );
+            
+            // Generate TTS for mood question
+            const moodAudioUrl = await generateTTS(moodQuestion, "nova");
+            const fullMoodAudioUrl = moodAudioUrl.startsWith("http")
+                ? moodAudioUrl
+                : `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${moodAudioUrl}`;
+            
+            // Create TwiML that plays greeting, then asks mood question with gather
+            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+                <Response>
+                    <Play>${fullAudioUrl}</Play>
+                    <Gather input="speech" speechTimeout="3" speechModel="phone_call"
+                            action="${nextAction}"
+                            method="POST">
+                        <Play>${fullMoodAudioUrl}</Play>
+                    </Gather>
+                    <Say voice="alice">I didn't hear a response. Let's continue.</Say>
+                    <Redirect>${nextAction}</Redirect>
+                </Response>`;
 
             return new NextResponse(twiml, {
                 headers: { "Content-Type": "text/xml" },
