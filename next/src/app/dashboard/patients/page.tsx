@@ -1,19 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Plus, Phone, Edit, User } from "lucide-react";
 import type { Patient } from "@/types/business";
+import { getPatients } from "@/dal/patients";
 
 export default async function PatientsPage() {
-    const supabase = await createClient();
-
-    const { data: patients, error } = await supabase
-        .from("patients")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-    if (error) {
-        console.error("Error fetching patients:", error);
-    }
+    const patients = await getPatients();
 
     return (
         <div className="p-8">

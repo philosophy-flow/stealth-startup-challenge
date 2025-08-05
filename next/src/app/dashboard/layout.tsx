@@ -1,16 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Home, Users, Phone } from "lucide-react";
-import { logoutUser } from "@/dal/auth";
+import { logoutUser, getUser } from "@/dal/auth";
 import LogoutButton from "@/components/LogoutButton";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const supabase = await createClient();
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getUser();
 
     if (!user) {
         redirect("/auth");
