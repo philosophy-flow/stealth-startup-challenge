@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Plus, Phone, Edit, User } from "lucide-react";
-import type { Patient } from "@/types";
+import type { Patient } from "@/types/business";
 
 export default async function PatientsPage() {
     const supabase = await createClient();

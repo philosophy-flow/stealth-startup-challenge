@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import type { Patient } from "@/types";
+import type { Patient } from "@/types/business";
 
 export default function EditPatientPage() {
     const router = useRouter();

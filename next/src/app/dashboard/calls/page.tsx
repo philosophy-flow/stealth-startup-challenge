@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import { Phone, Calendar, Clock, FileText, X } from "lucide-react";
-import type { Call, Patient } from "@/types";
+import type { Call, Patient } from "@/types/business";
 
 interface CallWithPatient extends Call {
     patient: Patient;
