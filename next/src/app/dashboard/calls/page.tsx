@@ -18,6 +18,47 @@ export default function CallsPage() {
 
     useEffect(() => {
         fetchCalls();
+        
+        // Set up real-time subscription
+        const supabase = createClient();
+        const channel = supabase
+            .channel("calls-changes")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "calls",
+                },
+                (payload) => {
+                    console.log("[REALTIME] Call update:", payload);
+                    
+                    if (payload.eventType === "INSERT") {
+                        // Fetch the new call with patient data
+                        fetchSingleCall(payload.new.id);
+                    } else if (payload.eventType === "UPDATE") {
+                        // Update existing call in state
+                        setCalls((prevCalls) =>
+                            prevCalls.map((call) =>
+                                call.id === payload.new.id
+                                    ? { ...call, ...payload.new }
+                                    : call
+                            )
+                        );
+                    } else if (payload.eventType === "DELETE") {
+                        // Remove deleted call from state
+                        setCalls((prevCalls) =>
+                            prevCalls.filter((call) => call.id !== payload.old.id)
+                        );
+                    }
+                }
+            )
+            .subscribe();
+        
+        // Cleanup subscription on unmount
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const fetchCalls = async () => {
@@ -38,6 +79,38 @@ export default function CallsPage() {
             setCalls(data as CallWithPatient[]);
         }
         setLoading(false);
+    };
+    
+    const fetchSingleCall = async (callId: string) => {
+        const supabase = createClient();
+        const { data, error } = await supabase
+            .from("calls")
+            .select(
+                `
+        *,
+        patient:patients (*)
+      `
+            )
+            .eq("id", callId)
+            .single();
+
+        if (error) {
+            console.error("Error fetching single call:", error);
+        } else if (data) {
+            setCalls((prevCalls) => {
+                // Check if call already exists
+                const existingIndex = prevCalls.findIndex((c) => c.id === data.id);
+                if (existingIndex >= 0) {
+                    // Update existing call
+                    const updatedCalls = [...prevCalls];
+                    updatedCalls[existingIndex] = data as CallWithPatient;
+                    return updatedCalls;
+                } else {
+                    // Add new call to the beginning
+                    return [data as CallWithPatient, ...prevCalls];
+                }
+            });
+        }
     };
 
     const openCallDetails = (call: CallWithPatient) => {
