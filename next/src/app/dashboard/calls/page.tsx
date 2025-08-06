@@ -154,7 +154,7 @@ export default function CallsPage() {
         <div className="p-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Call History</h1>
-                <p className="text-gray-600 mt-2">View all patient calls and their details</p>
+                <p className="text-gray-600 mt-2">View all patient calls and their details.</p>
             </div>
 
             {loading ? (
@@ -202,7 +202,9 @@ export default function CallsPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-gray-900">
-                                            {format(new Date(call.call_date), "MMM d, yyyy")}
+                                            {call.call_start_time 
+                                                ? format(new Date(call.call_start_time), "MMM d, yyyy")
+                                                : "No date"}
                                         </div>
                                         <div className="text-sm text-gray-500">
                                             {call.call_start_time

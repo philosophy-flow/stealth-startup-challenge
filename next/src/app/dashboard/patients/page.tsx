@@ -11,7 +11,7 @@ export default async function PatientsPage() {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Patients</h1>
-                    <p className="text-gray-600 mt-2">Manage your elderly patients</p>
+                    <p className="text-gray-600 mt-2">Manage patient profile details.</p>
                 </div>
 
                 <Link

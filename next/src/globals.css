@@ -3,3 +3,8 @@
 input {
     color: black;
 }
+
+button:hover,
+a:hover {
+    cursor: pointer;
+}

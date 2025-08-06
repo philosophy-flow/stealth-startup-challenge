@@ -241,7 +241,7 @@ export default function EditPatientPage() {
 
                         <div>
                             <label htmlFor="voice" className="block text-sm font-medium text-gray-700">
-                                AI Voice
+                                Agent Voice
                             </label>
                             <select
                                 id="voice"
