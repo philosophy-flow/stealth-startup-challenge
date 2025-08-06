@@ -13,6 +13,8 @@ export default function PatientTable({ patients }: PatientTableProps) {
     const [callingPatientId, setCallingPatientId] = useState<string | null>(null);
     const [callError, setCallError] = useState<string | null>(null);
     const [callSuccess, setCallSuccess] = useState<string | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [patientToCall, setPatientToCall] = useState<Patient | null>(null);
 
     const triggerCall = async (patient: Patient) => {
         setCallingPatientId(patient.id);
@@ -37,6 +39,8 @@ export default function PatientTable({ patients }: PatientTableProps) {
             }
 
             setCallSuccess(`Call initiated to ${patient.first_name} ${patient.last_name}`);
+            setShowConfirmModal(false);
+            setPatientToCall(null);
 
             // Clear success message after 5 seconds
             setTimeout(() => {
@@ -65,6 +69,41 @@ export default function PatientTable({ patients }: PatientTableProps) {
             {callSuccess && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
                     {callSuccess}
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && patientToCall && (
+                <div
+                    className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50"
+                    onClick={() => setShowConfirmModal(false)}
+                >
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Call</h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to call {patientToCall.first_name}?
+                            {patientToCall.location && (
+                                <span className="block mt-1">
+                                    They are located in <span className="font-bold">{patientToCall.location}</span>, so
+                                    keep time zone differences in mind when reaching out.
+                                </span>
+                            )}
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => triggerCall(patientToCall)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                            >
+                                Call {patientToCall.first_name}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -125,7 +164,10 @@ export default function PatientTable({ patients }: PatientTableProps) {
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div className="flex justify-end space-x-2">
                                         <button
-                                            onClick={() => triggerCall(patient)}
+                                            onClick={() => {
+                                                setPatientToCall(patient);
+                                                setShowConfirmModal(true);
+                                            }}
                                             disabled={callingPatientId === patient.id}
                                             className="text-green-600 hover:text-green-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Trigger Call"
