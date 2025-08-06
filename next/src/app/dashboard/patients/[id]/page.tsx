@@ -102,7 +102,7 @@ export default function EditPatientPage() {
 
     if (!patient) {
         return (
-            <div className="p-8">
+            <div className="p-4 sm:p-6 md:p-8">
                 <div className="max-w-2xl mx-auto">
                     <div className="bg-white rounded-lg shadow p-6">
                         <p className="text-gray-600">Loading patient...</p>
@@ -113,7 +113,7 @@ export default function EditPatientPage() {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-4 sm:p-6 md:p-8">
             <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                     <Link
@@ -127,7 +127,7 @@ export default function EditPatientPage() {
 
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex justify-between items-start mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900">Edit Patient</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Edit Patient</h1>
                         <button
                             onClick={handleDelete}
                             disabled={deleting}
@@ -138,8 +138,8 @@ export default function EditPatientPage() {
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
                                     First Name *
@@ -171,7 +171,7 @@ export default function EditPatientPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="age" className="block text-sm font-medium text-gray-700">
                                     Age
@@ -204,7 +204,7 @@ export default function EditPatientPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">
                                     Phone Number *

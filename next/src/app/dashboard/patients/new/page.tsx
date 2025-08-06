@@ -66,7 +66,7 @@ export default function NewPatientPage() {
     };
 
     return (
-        <div className="p-8">
+        <div className="p-4 sm:p-6 md:p-8">
             <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                     <Link
@@ -79,10 +79,10 @@ export default function NewPatientPage() {
                 </div>
 
                 <div className="bg-white rounded-lg shadow p-6">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Patient</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Add New Patient</h1>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
                                     First Name *
@@ -114,7 +114,7 @@ export default function NewPatientPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="age" className="block text-sm font-medium text-gray-700">
                                     Age
@@ -147,7 +147,7 @@ export default function NewPatientPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
                                 <label htmlFor="phone_number" className="block text-sm font-medium text-gray-700">
                                     Phone Number *

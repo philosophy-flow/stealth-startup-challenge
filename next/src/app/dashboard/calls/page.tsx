@@ -151,10 +151,10 @@ export default function CallsPage() {
     };
 
     return (
-        <div className="p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Call History</h1>
-                <p className="text-gray-600 mt-2">View all patient calls and their details.</p>
+        <div className="p-4 sm:p-6 md:p-8">
+            <div className="mb-6 sm:mb-8">
+                <h1 className="hidden sm:block text-2xl sm:text-3xl font-bold text-gray-900">Call History</h1>
+                <p className="text-sm sm:text-base text-gray-600 sm:mt-2">View all patient calls and their details.</p>
             </div>
 
             {loading ? (
@@ -168,7 +168,53 @@ export default function CallsPage() {
                     <p className="text-gray-600">Calls will appear here once you trigger them from the patients page</p>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <>
+                    {/* Mobile card view */}
+                    <div className="space-y-4 xl:hidden">
+                    {calls.map((call) => (
+                        <div key={call.id} className="bg-white rounded-lg shadow p-4">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">
+                                        {call.patient.first_name} {call.patient.last_name}
+                                    </h3>
+                                    <p className="text-sm text-gray-500">
+                                        {call.call_start_time
+                                            ? format(new Date(call.call_start_time), "MMM d, h:mm a")
+                                            : "No date"}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => openCallDetails(call)}
+                                    className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                                >
+                                    View
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-gray-600">
+                                        {formatDuration(call.call_duration)}
+                                    </span>
+                                    {call.response_data?.overall_mood && (
+                                        <span
+                                            className={`inline-flex text-xs font-semibold rounded-md px-2 py-1 ${getMoodColor(
+                                                call.response_data.overall_mood
+                                            )}`}
+                                        >
+                                            {call.response_data.overall_mood.charAt(0).toUpperCase() +
+                                                call.response_data.overall_mood.slice(1)}
+                                        </span>
+                                    )}
+                                </div>
+                                {getGameResultDisplay(call.response_data?.game_result)}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Desktop table view */}
+                <div className="hidden xl:block bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -247,15 +293,16 @@ export default function CallsPage() {
                         </tbody>
                     </table>
                 </div>
+                </>
             )}
 
             {/* Call Details Modal */}
             {showModal && selectedCall && (
                 <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-start">
+                    <div className="bg-white rounded-lg w-full sm:max-w-3xl max-h-[100vh] sm:max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b p-4 sm:p-6 flex justify-between items-start">
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-900">Call Details</h2>
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Call Details</h2>
                                 <p className="text-gray-600 mt-1">
                                     {selectedCall.patient.first_name} {selectedCall.patient.last_name} -{" "}
                                     {format(new Date(selectedCall.call_date), "MMM d, yyyy")}
@@ -266,9 +313,9 @@ export default function CallsPage() {
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                             {/* Call Information */}
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-500 mb-2">Call Information</h3>
                                     <div className="space-y-2">
