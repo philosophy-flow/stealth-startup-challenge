@@ -18,7 +18,7 @@ export default function CallsPage() {
 
     useEffect(() => {
         fetchCalls();
-        
+
         // Set up real-time subscription
         const supabase = createClient();
         const channel = supabase
@@ -32,29 +32,23 @@ export default function CallsPage() {
                 },
                 (payload) => {
                     console.log("[REALTIME] Call update:", payload);
-                    
+
                     if (payload.eventType === "INSERT") {
                         // Fetch the new call with patient data
                         fetchSingleCall(payload.new.id);
                     } else if (payload.eventType === "UPDATE") {
                         // Update existing call in state
                         setCalls((prevCalls) =>
-                            prevCalls.map((call) =>
-                                call.id === payload.new.id
-                                    ? { ...call, ...payload.new }
-                                    : call
-                            )
+                            prevCalls.map((call) => (call.id === payload.new.id ? { ...call, ...payload.new } : call))
                         );
                     } else if (payload.eventType === "DELETE") {
                         // Remove deleted call from state
-                        setCalls((prevCalls) =>
-                            prevCalls.filter((call) => call.id !== payload.old.id)
-                        );
+                        setCalls((prevCalls) => prevCalls.filter((call) => call.id !== payload.old.id));
                     }
                 }
             )
             .subscribe();
-        
+
         // Cleanup subscription on unmount
         return () => {
             supabase.removeChannel(channel);
@@ -71,7 +65,7 @@ export default function CallsPage() {
         patient:patients (*)
       `
             )
-            .order("call_date", { ascending: false });
+            .order("call_start_time", { ascending: false });
 
         if (error) {
             console.error("Error fetching calls:", error);
@@ -80,7 +74,7 @@ export default function CallsPage() {
         }
         setLoading(false);
     };
-    
+
     const fetchSingleCall = async (callId: string) => {
         const supabase = createClient();
         const { data, error } = await supabase
