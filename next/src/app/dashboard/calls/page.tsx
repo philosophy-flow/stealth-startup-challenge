@@ -117,14 +117,27 @@ export default function CallsPage() {
         setSelectedCall(null);
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "completed":
+    const getGameResultDisplay = (gameResult: string | undefined) => {
+        if (!gameResult) return "-";
+        if (gameResult === "winner") {
+            return <span className="text-green-700 font-medium text-sm">Winner 🎉</span>;
+        }
+        if (gameResult === "loser") {
+            return <span className="text-gray-600 text-sm">Loser</span>;
+        }
+        return "-";
+    };
+
+    const getMoodColor = (mood: string | undefined) => {
+        switch (mood) {
+            case "positive":
                 return "bg-green-100 text-green-800";
-            case "in_progress":
-                return "bg-blue-100 text-blue-800";
-            case "failed":
+            case "negative":
                 return "bg-red-100 text-red-800";
+            case "neutral":
+                return "bg-yellow-100 text-yellow-800";
+            case "unknown":
+                return "bg-gray-100 text-gray-800";
             default:
                 return "bg-gray-100 text-gray-800";
         }
@@ -169,7 +182,7 @@ export default function CallsPage() {
                                     Duration
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
+                                    Game Result
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Mood
@@ -203,18 +216,21 @@ export default function CallsPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            className={`inline-flex text-xs leading-5 font-semibold rounded-full px-2 py-1 ${getStatusColor(
-                                                call.status
-                                            )}`}
-                                        >
-                                            {call.status}
-                                        </span>
+                                        {getGameResultDisplay(call.response_data?.game_result)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
-                                            {call.response_data?.overall_mood || "-"}
-                                        </div>
+                                        {call.response_data?.overall_mood ? (
+                                            <span
+                                                className={`inline-flex text-xs font-semibold rounded-md px-3 py-1 ${getMoodColor(
+                                                    call.response_data.overall_mood
+                                                )}`}
+                                            >
+                                                {call.response_data.overall_mood.charAt(0).toUpperCase() +
+                                                    call.response_data.overall_mood.slice(1)}
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm text-gray-500">-</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button
@@ -299,10 +315,10 @@ export default function CallsPage() {
                                 </div>
                             </div>
 
-                            {/* Today's Agenda */}
+                            {/* Today&apos;s Agenda */}
                             {selectedCall.response_data?.todays_agenda && (
                                 <div>
-                                    <h3 className="text-sm font-medium text-gray-500 mb-2">Today's Agenda</h3>
+                                    <h3 className="text-sm font-medium text-gray-500 mb-2">Today&apos;s Agenda</h3>
                                     <div className="bg-gray-50 rounded-lg p-4">
                                         <p className="text-sm text-gray-900">
                                             {selectedCall.response_data.todays_agenda}
