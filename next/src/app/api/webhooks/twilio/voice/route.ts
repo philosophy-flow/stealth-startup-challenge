@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import twilio from "twilio";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { validateTwilioWebhook } from "@/lib/twilio/client";
 import { generateTTS } from "@/lib/openai/tts";
@@ -53,11 +54,11 @@ export async function POST(request: NextRequest) {
                 })
                 .eq("call_sid", callSid);
 
-            // Hang up
-            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-                <Response><Hangup/></Response>`;
+            // Hang up using TwiML library
+            const response = new twilio.twiml.VoiceResponse();
+            response.hangup();
 
-            return new NextResponse(twiml, {
+            return new NextResponse(response.toString(), {
                 headers: { "Content-Type": "text/xml" },
             });
         }
@@ -71,14 +72,19 @@ export async function POST(request: NextRequest) {
 
         if (callError || !callRecord) {
             console.error("[VOICE] Call record not found:", callError);
-            // Create a simple greeting anyway
-            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-                <Response>
-                    <Say voice="alice">Hello, this is your daily check-in call.</Say>
-                    <Hangup/>
-                </Response>`;
 
-            return new NextResponse(twiml, {
+            // Create a simple greeting anyway using TwiML library
+            const response = new twilio.twiml.VoiceResponse();
+            response.say(
+                {
+                    voice: "alice",
+                    language: "en-US",
+                },
+                "Hello, this is your daily check-in call."
+            );
+            response.hangup();
+
+            return new NextResponse(response.toString(), {
                 headers: { "Content-Type": "text/xml" },
             });
         }
@@ -102,16 +108,18 @@ export async function POST(request: NextRequest) {
         console.log("[VOICE] Using voice:", patientVoice);
 
         // Generate TTS audio
-        let audioUrl: string;
         try {
-            audioUrl = await generateTTS(greetingText, patientVoice);
-            // Make URL absolute
-            const baseUrl = getAppUrl();
-            let fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
-            // Escape & for XML
-            fullAudioUrl = fullAudioUrl.replace(/&/g, '&amp;');
+            const greetingAudioUrl = await generateTTS(greetingText, patientVoice);
+            const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
 
-            console.log("[VOICE] TTS generated, URL:", fullAudioUrl);
+            // Make URLs absolute
+            const baseUrl = getAppUrl();
+            const fullGreetingUrl = greetingAudioUrl.startsWith("http")
+                ? greetingAudioUrl
+                : `${baseUrl}${greetingAudioUrl}`;
+            const fullMoodUrl = moodAudioUrl.startsWith("http") ? moodAudioUrl : `${baseUrl}${moodAudioUrl}`;
+
+            console.log("[VOICE] TTS generated successfully");
 
             // Add greeting and mood question to transcript
             await supabaseAdmin
@@ -125,48 +133,76 @@ export async function POST(request: NextRequest) {
                 })
                 .eq("call_sid", callSid);
 
-            // Generate TwiML with greeting AND mood question
-            const nextAction = `${getAppUrl()}/api/webhooks/twilio/gather/mood_check`;
+            // Generate TwiML using the library
+            const response = new twilio.twiml.VoiceResponse();
 
-            // Generate TTS for mood question
-            const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
-            let fullMoodAudioUrl = moodAudioUrl.startsWith("http") ? moodAudioUrl : `${baseUrl}${moodAudioUrl}`;
-            // Escape & for XML
-            fullMoodAudioUrl = fullMoodAudioUrl.replace(/&/g, '&amp;');
+            // Play greeting
+            response.play(fullGreetingUrl);
 
-            // Create TwiML that plays greeting, then asks mood question with gather
-            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-                <Response>
-                    <Play>${fullAudioUrl}</Play>
-                    <Gather input="speech" speechTimeout="3" speechModel="phone_call"
-                            action="${nextAction}"
-                            method="POST">
-                        <Play>${fullMoodAudioUrl}</Play>
-                    </Gather>
-                    <Say voice="alice">I didn't hear a response. Let's continue.</Say>
-                    <Redirect>${nextAction}</Redirect>
-                </Response>`;
+            // Gather response with mood question
+            const gather = response.gather({
+                input: ["speech"],
+                speechTimeout: "3",
+                speechModel: "phone_call",
+                action: `${getAppUrl()}/api/webhooks/twilio/gather/mood_check`,
+                method: "POST",
+            });
 
-            return new NextResponse(twiml, {
+            // Play mood question within gather
+            gather.play(fullMoodUrl);
+
+            // If no response, continue anyway
+            response.say(
+                {
+                    voice: "alice",
+                    language: "en-US",
+                },
+                "I didn't hear a response. Let's continue."
+            );
+            response.redirect(`${getAppUrl()}/api/webhooks/twilio/gather/mood_check`);
+
+            return new NextResponse(response.toString(), {
                 headers: { "Content-Type": "text/xml" },
             });
         } catch (ttsError) {
             console.error("[VOICE] TTS generation failed:", ttsError);
 
-            // Fallback to Twilio's built-in TTS
-            const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-                <Response>
-                    <Gather input="speech" speechTimeout="3" speechModel="phone_call"
-                            action="${getAppUrl()}/api/webhooks/twilio/gather/mood_check"
-                            method="POST">
-                        <Say voice="alice">${greetingText}</Say>
-                        <Say voice="alice">How are you feeling today?</Say>
-                    </Gather>
-                    <Say voice="alice">I didn't hear a response. Let's continue.</Say>
-                    <Redirect>${getAppUrl()}/api/webhooks/twilio/gather/mood_check</Redirect>
-                </Response>`;
+            // Fallback to Twilio's built-in TTS using the library
+            const response = new twilio.twiml.VoiceResponse();
 
-            return new NextResponse(twiml, {
+            const gather = response.gather({
+                input: ["speech"],
+                speechTimeout: "3",
+                speechModel: "phone_call",
+                action: `${getAppUrl()}/api/webhooks/twilio/gather/mood_check`,
+                method: "POST",
+            });
+
+            gather.say(
+                {
+                    voice: "alice",
+                    language: "en-US",
+                },
+                greetingText
+            );
+            gather.say(
+                {
+                    voice: "alice",
+                    language: "en-US",
+                },
+                "How are you feeling today?"
+            );
+
+            response.say(
+                {
+                    voice: "alice",
+                    language: "en-US",
+                },
+                "I didn't hear a response. Let's continue."
+            );
+            response.redirect(`${getAppUrl()}/api/webhooks/twilio/gather/mood_check`);
+
+            return new NextResponse(response.toString(), {
                 headers: { "Content-Type": "text/xml" },
             });
         }
@@ -174,14 +210,18 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error("[VOICE] Webhook error:", error);
 
-        // Return simple error response
-        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-            <Response>
-                <Say voice="alice">I'm sorry, there was an error with your call. Please try again later.</Say>
-                <Hangup/>
-            </Response>`;
+        // Return simple error response using TwiML library
+        const response = new twilio.twiml.VoiceResponse();
+        response.say(
+            {
+                voice: "alice",
+                language: "en-US",
+            },
+            "I'm sorry, there was an error with your call. Please try again later."
+        );
+        response.hangup();
 
-        return new NextResponse(twiml, {
+        return new NextResponse(response.toString(), {
             headers: { "Content-Type": "text/xml" },
         });
     }

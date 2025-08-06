@@ -269,6 +269,52 @@ The system is optimized for low operational costs:
 -   **Learning velocity** - Went from zero knowledge of Twilio/Supabase to production deployment in 48 hours
 -   **The pivot** - Recognizing and escaping the refactoring trap saved the project
 
+### Eleventh Hour Discovery & Refactor
+
+**The Crisis**: With hours left before submission, I deployed to Vercel and watched (listened?) in horror as the OpenAI TTS functionality failed, leaving the graceless Twilio default voice to handle the conversation. The culprit? My audio caching strategy was writing files to `/public/temp/audio/`, which works locally but isn't permitted on Vercel's read-only filesystem.
+
+**Pivot to In-Memory Cache**: The original implementation had a critical flaw, so I used the time spent debugging to also clean up the imlpementation in general:
+
+-   Cost tracking logged twice (on generation AND on serving)
+-   Manual XML string construction causing escaping issues (`&amp;` everywhere)
+-   No cleanup mechanism - expensive audio files accumulated forever
+-   **Fatal flaw**: Generated TTS audio → Saved to filesystem → Served as static files
+
+**The Solution**: Implement a simple in-memory cache:
+
+```
+OLD: Generate TTS → Write MP3 to disk (Vercel refuses) → 💥
+NEW: Generate TTS → Store Buffer in memory → Serve from cache ✅
+```
+
+**Technical Improvements**:
+
+1. **In-Memory Audio Cache** - Audio buffers stored in a Map with 5-minute TTL
+
+    - No filesystem access required
+    - Automatic cleanup prevents memory leaks
+    - Cache hits prevent duplicate API calls
+
+2. **Proper TwiML Library Usage** - Replaced all manual XML construction
+
+    - No more `&amp;` escaping nightmares
+    - Twilio's official library handles all edge cases
+    - Cleaner, more maintainable code
+
+3. **Cost Optimization** - Fixed double-billing bug
+
+    - Cost logged once on generation, not on every serve
+    - Cache prevents regenerating identical prompts
+    - Saved ~50% on TTS costs
+
+4. **Production-Ready Architecture**
+
+    - Works on any serverless platform (Vercel, Netlify, AWS Lambda)
+    - Stateless design scales horizontally
+    - No persistent storage requirements
+
+**The Result**: What started as a deployment disaster became the catalyst for a superior architecture. The refactored system is faster (cached responses), cheaper (no duplicate generations), more reliable (no filesystem dependencies), and actually deployable. Sometimes the best solutions come from the worst crises.
+
 ## 📋 Technical Write-Up: Decisions, Trade-offs, and Next Steps
 
 ### Technical Decisions & Trade-offs

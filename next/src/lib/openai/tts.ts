@@ -1,9 +1,7 @@
 import { openai, calculateTTSCost, logCost } from "./client";
+import { audioCache } from "./audio-cache";
 
-// Cache for common phrases to avoid regenerating
-const CACHED_PHRASES: Record<string, string> = {};
-
-// Common phrases that can be pre-cached
+// Common phrases that can be pre-cached (for future use)
 export const COMMON_PHRASES = {
     greeting: "Hello! This is your daily check-in call.",
     mood_check: "How are you feeling today?",
@@ -15,6 +13,9 @@ export const COMMON_PHRASES = {
     goodbye: "Goodbye!",
 };
 
+// Store generated audio in memory with unique ID
+const audioStore = new Map<string, Buffer>();
+
 // Generate TTS audio using OpenAI's cheapest model
 export async function generateTTS(
     text: string,
@@ -22,19 +23,29 @@ export async function generateTTS(
 ): Promise<string> {
     try {
         // Check cache first
-        const cacheKey = `${text}_${voice}`;
-        if (CACHED_PHRASES[cacheKey]) {
-            console.log("[TTS] Using cached audio for:", text.substring(0, 50));
-            return CACHED_PHRASES[cacheKey];
+        const cachedBuffer = audioCache.get(text, voice);
+        if (cachedBuffer) {
+            // Simple stable ID: use voice + hash of text
+            const textHash = text.split("").reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0);
+            const audioId = `audio_${voice}_${Math.abs(textHash)}`;
+
+            // Only set if not already in store
+            if (!audioStore.has(audioId)) {
+                audioStore.set(audioId, cachedBuffer);
+
+                // Clean up after 5 minutes
+                setTimeout(() => {
+                    audioStore.delete(audioId);
+                }, 5 * 60 * 1000);
+            }
+
+            return `/api/audio/cached/${audioId}`;
         }
 
-        // For production/Vercel, use the streaming endpoint
-        // This avoids filesystem writes which don't work on read-only systems
-        const encodedText = encodeURIComponent(text);
-        const encodedVoice = encodeURIComponent(voice);
-        const streamUrl = `/api/audio/stream?text=${encodedText}&voice=${encodedVoice}`;
+        // Generate new audio
+        console.log(`[TTS] Generating new audio for: "${text.substring(0, 50)}..." with voice: ${voice}`);
 
-        // Log cost (even though we're streaming)
+        // Calculate and log cost ONCE
         const cost = calculateTTSCost(text);
         logCost("TTS", cost, {
             characters: text.length,
@@ -42,18 +53,44 @@ export async function generateTTS(
             text: text.substring(0, 100),
         });
 
-        console.log(`[TTS] Generated streaming URL for: "${text.substring(0, 50)}..." with voice: ${voice}`);
+        // Generate audio using CHEAPEST model (tts-1, NOT tts-1-hd)
+        const mp3Response = await openai.audio.speech.create({
+            model: "tts-1", // CRITICAL: Using cheapest model
+            voice,
+            input: text,
+            speed: 0.9, // Slightly slower for elderly listeners
+        });
 
-        // Cache common phrases
-        if (Object.values(COMMON_PHRASES).includes(text)) {
-            CACHED_PHRASES[cacheKey] = streamUrl;
+        // Convert to buffer
+        const buffer = Buffer.from(await mp3Response.arrayBuffer());
+
+        // Cache the buffer
+        audioCache.set(text, voice, buffer);
+
+        // Store in temporary map for serving - use stable ID
+        const textHash = text.split("").reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0);
+        const audioId = `audio_${voice}_${Math.abs(textHash)}`;
+
+        // Only set if not already in store
+        if (!audioStore.has(audioId)) {
+            audioStore.set(audioId, buffer);
+
+            // Clean up after 5 minutes
+            setTimeout(() => {
+                audioStore.delete(audioId);
+            }, 5 * 60 * 1000);
         }
 
-        return streamUrl;
+        return `/api/audio/cached/${audioId}`;
     } catch (error) {
         console.error("[TTS] Error generating audio:", error);
         throw error;
     }
+}
+
+// Get audio buffer by ID (for serving cached audio)
+export function getAudioBuffer(audioId: string): Buffer | undefined {
+    return audioStore.get(audioId);
 }
 
 // Generate a cost-optimized summary using GPT-4o-mini
@@ -92,26 +129,4 @@ export async function generateCallSummary(transcript: string, patientName: strin
         console.error("[GPT] Error generating summary:", error);
         return "Unable to generate summary.";
     }
-}
-
-// Pre-generate common phrase audio on startup (optional)
-export async function pregenerateCachedAudio(): Promise<void> {
-    console.log("[TTS] Pre-generating common phrases...");
-
-    for (const [key, text] of Object.entries(COMMON_PHRASES)) {
-        try {
-            await generateTTS(text, "nova");
-            console.log(`[TTS] Pre-generated: ${key}`);
-        } catch (error) {
-            console.error(`[TTS] Failed to pre-generate ${key}:`, error);
-        }
-    }
-
-    console.log("[TTS] Pre-generation complete");
-}
-
-// Clean up old audio files (no longer needed with streaming approach)
-export async function cleanupOldAudioFiles(): Promise<void> {
-    // No cleanup needed - streaming approach doesn't create files
-    console.log("[TTS] Cleanup not needed with streaming approach");
 }
