@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { twilioClient, formatPhoneNumber } from "@/lib/twilio/client";
 import { CallState } from "@/lib/call/state-machine";
+import { getAppUrl } from "@/lib/url";
 import type { Patient } from "@/types/business";
 
 export async function POST(request: NextRequest) {
@@ -40,9 +41,8 @@ export async function POST(request: NextRequest) {
         // Format phone number for Twilio
         const formattedPhone = formatPhoneNumber(patient.phone_number);
 
-        // Get the base URL with proper protocol
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const webhookBaseUrl = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+        // Get the base URL for webhooks
+        const webhookBaseUrl = getAppUrl();
 
         console.log("[TRIGGER] Initiating call to:", formattedPhone);
         console.log("[TRIGGER] Webhook base URL:", webhookBaseUrl);

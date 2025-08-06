@@ -11,6 +11,7 @@ import {
     generateSecretNumber,
     checkNumberGuess,
 } from "@/lib/call/state-machine";
+import { getAppUrl } from "@/lib/url";
 import type { VoiceType } from "@/types/business";
 
 // Map URL state to CallState enum
@@ -152,8 +153,8 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
 
             try {
                 const audioUrl = await generateTTS(closingText, patientVoice);
-                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-                const fullAudioUrl = `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${audioUrl}`;
+                const baseUrl = getAppUrl();
+                const fullAudioUrl = `${baseUrl}${audioUrl}`;
 
                 const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                     <Response>
@@ -194,8 +195,8 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
         // Generate TTS for next prompt
         try {
             const audioUrl = await generateTTS(nextPrompt, patientVoice);
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-            const fullAudioUrl = `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${audioUrl}`;
+            const baseUrl = getAppUrl();
+            const fullAudioUrl = `${baseUrl}${audioUrl}`;
 
             // Map next state to URL
             let nextStateUrl = "";
@@ -222,9 +223,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
                     nextStateUrl = "closing";
             }
 
-            const nextAction = `${
-                baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`
-            }/api/webhooks/twilio/gather/${nextStateUrl}`;
+            const nextAction = `${baseUrl}/api/webhooks/twilio/gather/${nextStateUrl}`;
 
             // Special handling for number game - gather the guess directly
             if (nextState === CallState.NUMBER_GAME) {
@@ -232,16 +231,12 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
                 const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                     <Response>
                         <Gather input="speech" speechTimeout="4" speechModel="numbers_and_commands"
-                                action="${
-                                    baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`
-                                }/api/webhooks/twilio/gather/number_game_response"
+                                action="${baseUrl}/api/webhooks/twilio/gather/number_game_response"
                                 method="POST">
                             <Play>${fullAudioUrl}</Play>
                         </Gather>
                         <Say voice="alice">Let's continue.</Say>
-                        <Redirect>${
-                            baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`
-                        }/api/webhooks/twilio/gather/closing</Redirect>
+                        <Redirect>${baseUrl}/api/webhooks/twilio/gather/closing</Redirect>
                     </Response>`;
 
                 return new NextResponse(twiml, {
@@ -262,12 +257,12 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                 <Response>
                     <Gather input="speech" speechTimeout="3" speechModel="phone_call"
-                            action="${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/${params.state}"
+                            action="${getAppUrl()}/api/webhooks/twilio/gather/${params.state}"
                             method="POST">
                         <Say voice="alice">${nextPrompt}</Say>
                     </Gather>
                     <Say voice="alice">Let's continue.</Say>
-                    <Redirect>${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/closing</Redirect>
+                    <Redirect>${getAppUrl()}/api/webhooks/twilio/gather/closing</Redirect>
                 </Response>`;
 
             return new NextResponse(twiml, {

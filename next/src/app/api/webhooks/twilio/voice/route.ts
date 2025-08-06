@@ -5,6 +5,7 @@ import { generatePlayAndGatherTwiML } from "@/lib/twilio/twiml";
 import { generateTTS } from "@/lib/openai/tts";
 import { generatePrompt } from "@/lib/call/prompts";
 import { CallState } from "@/lib/call/state-machine";
+import { getAppUrl } from "@/lib/url";
 import type { VoiceType } from "@/types/business";
 
 export async function POST(request: NextRequest) {
@@ -105,10 +106,10 @@ export async function POST(request: NextRequest) {
         try {
             audioUrl = await generateTTS(greetingText, patientVoice);
             // Make URL absolute
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+            const baseUrl = getAppUrl();
             const fullAudioUrl = audioUrl.startsWith("http")
                 ? audioUrl
-                : `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${audioUrl}`;
+                : `${baseUrl}${audioUrl}`;
 
             console.log("[VOICE] TTS generated, URL:", fullAudioUrl);
 
@@ -125,13 +126,13 @@ export async function POST(request: NextRequest) {
                 .eq("call_sid", callSid);
 
             // Generate TwiML with greeting AND mood question
-            const nextAction = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/mood_check`;
+            const nextAction = `${getAppUrl()}/api/webhooks/twilio/gather/mood_check`;
 
             // Generate TTS for mood question
             const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
             const fullMoodAudioUrl = moodAudioUrl.startsWith("http")
                 ? moodAudioUrl
-                : `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${moodAudioUrl}`;
+                : `${baseUrl}${moodAudioUrl}`;
 
             // Create TwiML that plays greeting, then asks mood question with gather
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -156,13 +157,13 @@ export async function POST(request: NextRequest) {
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                 <Response>
                     <Gather input="speech" speechTimeout="3" speechModel="phone_call"
-                            action="${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/mood_check"
+                            action="${getAppUrl()}/api/webhooks/twilio/gather/mood_check"
                             method="POST">
                         <Say voice="alice">${greetingText}</Say>
                         <Say voice="alice">How are you feeling today?</Say>
                     </Gather>
                     <Say voice="alice">I didn't hear a response. Let's continue.</Say>
-                    <Redirect>${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/mood_check</Redirect>
+                    <Redirect>${getAppUrl()}/api/webhooks/twilio/gather/mood_check</Redirect>
                 </Response>`;
 
             return new NextResponse(twiml, {
