@@ -5,6 +5,7 @@ import { generatePlayAndGatherTwiML } from "@/lib/twilio/twiml";
 import { generateTTS } from "@/lib/openai/tts";
 import { generatePrompt } from "@/lib/call/prompts";
 import { CallState } from "@/lib/call/state-machine";
+import type { VoiceType } from "@/types/business";
 
 export async function POST(request: NextRequest) {
     try {
@@ -92,15 +93,17 @@ export async function POST(request: NextRequest) {
 
         // Generate greeting and mood question
         const patientName = `${callRecord.patient.first_name} ${callRecord.patient.last_name}`;
+        const patientVoice = (callRecord.patient.voice || "nova") as VoiceType;
         const greetingText = generatePrompt(CallState.GREETING, patientName);
         const moodQuestion = generatePrompt(CallState.MOOD_CHECK, patientName);
 
         console.log("[VOICE] Generating TTS for greeting:", greetingText);
+        console.log("[VOICE] Using voice:", patientVoice);
 
         // Generate TTS audio
         let audioUrl: string;
         try {
-            audioUrl = await generateTTS(greetingText, "nova");
+            audioUrl = await generateTTS(greetingText, patientVoice);
             // Make URL absolute
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
             const fullAudioUrl = audioUrl.startsWith("http")
@@ -123,13 +126,13 @@ export async function POST(request: NextRequest) {
 
             // Generate TwiML with greeting AND mood question
             const nextAction = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio/gather/mood_check`;
-            
+
             // Generate TTS for mood question
-            const moodAudioUrl = await generateTTS(moodQuestion, "nova");
+            const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
             const fullMoodAudioUrl = moodAudioUrl.startsWith("http")
                 ? moodAudioUrl
                 : `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${moodAudioUrl}`;
-            
+
             // Create TwiML that plays greeting, then asks mood question with gather
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                 <Response>

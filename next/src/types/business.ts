@@ -1,3 +1,5 @@
+export type VoiceType = "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
+
 export interface Patient {
     id: string;
     first_name: string;
@@ -6,6 +8,7 @@ export interface Patient {
     location?: string;
     preferred_call_time?: string;
     phone_number: string;
+    voice?: VoiceType;
     family_member_id: string;
     created_at: string;
     updated_at: string;

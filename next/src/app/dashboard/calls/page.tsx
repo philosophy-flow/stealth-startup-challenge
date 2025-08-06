@@ -293,6 +293,15 @@ export default function CallsPage() {
                                                 {formatDuration(selectedCall.call_duration)}
                                             </span>
                                         </div>
+                                        <div className="flex items-center text-sm">
+                                            <span className="text-gray-600">Voice:</span>
+                                            <span className="ml-2 text-gray-900">
+                                                {selectedCall.patient.voice
+                                                    ? selectedCall.patient.voice.charAt(0).toUpperCase() +
+                                                      selectedCall.patient.voice.slice(1)
+                                                    : "Nova"}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 

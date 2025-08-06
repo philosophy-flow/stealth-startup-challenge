@@ -11,6 +11,7 @@ import {
     generateSecretNumber,
     checkNumberGuess,
 } from "@/lib/call/state-machine";
+import type { VoiceType } from "@/types/business";
 
 // Map URL state to CallState enum
 function mapUrlToCallState(urlState: string): CallState {
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
         }
 
         const patientName = `${callRecord.patient.first_name} ${callRecord.patient.last_name}`;
+        const patientVoice = (callRecord.patient.voice || "nova") as VoiceType;
         const responseData = callRecord.response_data || {};
         let transcript = responseData.call_transcript || "";
 
@@ -149,7 +151,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
             const closingText = generatePrompt(CallState.CLOSING, patientName, responseData);
 
             try {
-                const audioUrl = await generateTTS(closingText, "nova");
+                const audioUrl = await generateTTS(closingText, patientVoice);
                 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
                 const fullAudioUrl = `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${audioUrl}`;
 
@@ -191,7 +193,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
 
         // Generate TTS for next prompt
         try {
-            const audioUrl = await generateTTS(nextPrompt, "nova");
+            const audioUrl = await generateTTS(nextPrompt, patientVoice);
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
             const fullAudioUrl = `${baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`}${audioUrl}`;
 

@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import type { Patient } from "@/types/business";
+import type { Patient, VoiceType } from "@/types/business";
 
 export default function EditPatientPage() {
     const router = useRouter();
@@ -24,6 +24,7 @@ export default function EditPatientPage() {
         location: "",
         preferred_call_time: "",
         phone_number: "",
+        voice: "nova" as VoiceType,
     });
 
     useEffect(() => {
@@ -46,6 +47,7 @@ export default function EditPatientPage() {
                 location: data.location || "",
                 preferred_call_time: data.preferred_call_time || "",
                 phone_number: data.phone_number,
+                voice: data.voice || "nova",
             });
         }
     };
@@ -235,6 +237,29 @@ export default function EditPatientPage() {
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="voice" className="block text-sm font-medium text-gray-700">
+                                AI Voice
+                            </label>
+                            <select
+                                id="voice"
+                                name="voice"
+                                value={formData.voice}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="alloy">Alloy - Neutral and balanced</option>
+                                <option value="echo">Echo - Warm and conversational</option>
+                                <option value="fable">Fable - Expressive and animated</option>
+                                <option value="onyx">Onyx - Deep and authoritative</option>
+                                <option value="nova">Nova - Friendly and upbeat (Default)</option>
+                                <option value="shimmer">Shimmer - Soft and gentle</option>
+                            </select>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Choose a voice that the patient will find most comfortable and easy to understand.
+                            </p>
                         </div>
 
                         {error && (
