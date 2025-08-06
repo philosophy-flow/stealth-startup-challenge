@@ -16,7 +16,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* Sidebar */}
             <div className="w-64 bg-white shadow-md">
                 <div className="p-6">
-                    <h1 className="text-2xl font-bold text-gray-800">Aviator Health</h1>
+                    <h1 className="text-2xl font-bold text-gray-800">Aviator Agents</h1>
+                    <p className="text-gray-600 mt-2 text-s italic">
+                        Personalized care for the ones you love the most.
+                    </p>
                 </div>
 
                 <nav className="mt-6">
@@ -47,7 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
                 <div className="absolute bottom-0 w-64 p-6">
                     <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600 mb-3">{user.email}</p>
+                        <p className="text-sm text-gray-600 text-center mb-3">{user.email}</p>
                         <LogoutButton onClick={logoutUser} />
                     </div>
                 </div>

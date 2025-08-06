@@ -14,7 +14,20 @@ export default async function DashboardPage() {
         <div className="p-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-2">Welcome to your Aviator Health dashboard</p>
+                <p className="text-gray-600 mt-2 max-w-xl">
+                    Use your AI care companion to make daily check-in calls to elderly patients.
+                </p>
+                <p className="text-gray-600 mt-2 max-w-xl">
+                    Each call includes personalized greetings (with 6 voice options), mood checks, medication reminders,
+                    and cognitive games.
+                </p>
+                <p className="text-gray-600 mt-2 max-w-xl">
+                    Add patients to begin, then trigger calls from the Patients page.
+                </p>
+                <p className="text-gray-600 mt-2 max-w-xl">
+                    View detailed logs from the Call History page that include a full transcript and summary of the
+                    conversation.
+                </p>
             </div>
 
             {/* Stats Grid */}
