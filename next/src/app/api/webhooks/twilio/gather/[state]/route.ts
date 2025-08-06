@@ -155,7 +155,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             try {
                 const audioUrl = await generateTTS(closingText, patientVoice);
                 const baseUrl = getAppUrl();
-                const fullAudioUrl = `${baseUrl}${audioUrl}`;
+                let fullAudioUrl = `${baseUrl}${audioUrl}`;
+                // Escape & for XML
+                fullAudioUrl = fullAudioUrl.replace(/&/g, '&amp;');
 
                 const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                     <Response>
@@ -198,7 +200,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         try {
             const audioUrl = await generateTTS(nextPrompt, patientVoice);
             const baseUrl = getAppUrl();
-            const fullAudioUrl = `${baseUrl}${audioUrl}`;
+            let fullAudioUrl = `${baseUrl}${audioUrl}`;
+            // Escape & for XML
+            fullAudioUrl = fullAudioUrl.replace(/&/g, '&amp;');
 
             // Map next state to URL
             let nextStateUrl = "";

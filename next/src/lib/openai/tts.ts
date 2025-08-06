@@ -1,7 +1,4 @@
 import { openai, calculateTTSCost, logCost } from "./client";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
 
 // Cache for common phrases to avoid regenerating
 const CACHED_PHRASES: Record<string, string> = {};
@@ -31,7 +28,13 @@ export async function generateTTS(
             return CACHED_PHRASES[cacheKey];
         }
 
-        // Calculate and log cost
+        // For production/Vercel, use the streaming endpoint
+        // This avoids filesystem writes which don't work on read-only systems
+        const encodedText = encodeURIComponent(text);
+        const encodedVoice = encodeURIComponent(voice);
+        const streamUrl = `/api/audio/stream?text=${encodedText}&voice=${encodedVoice}`;
+
+        // Log cost (even though we're streaming)
         const cost = calculateTTSCost(text);
         logCost("TTS", cost, {
             characters: text.length,
@@ -39,41 +42,14 @@ export async function generateTTS(
             text: text.substring(0, 100),
         });
 
-        // Generate audio using CHEAPEST model (tts-1, NOT tts-1-hd)
-        const mp3Response = await openai.audio.speech.create({
-            model: "tts-1", // CRITICAL: Using cheapest model
-            voice,
-            input: text,
-            speed: 0.9, // Slightly slower for elderly listeners
-        });
-
-        // Convert to buffer
-        const buffer = Buffer.from(await mp3Response.arrayBuffer());
-
-        // Generate unique filename
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(7);
-        const filename = `tts_${timestamp}_${random}.mp3`;
-
-        // Ensure temp directory exists
-        const tempDir = join(process.cwd(), "public", "temp", "audio");
-        if (!existsSync(tempDir)) {
-            await mkdir(tempDir, { recursive: true });
-        }
-
-        // Save to temporary file
-        const filepath = join(tempDir, filename);
-        await writeFile(filepath, buffer);
-
-        // Generate public URL
-        const publicUrl = `/temp/audio/${filename}`;
+        console.log(`[TTS] Generated streaming URL for: "${text.substring(0, 50)}..." with voice: ${voice}`);
 
         // Cache common phrases
         if (Object.values(COMMON_PHRASES).includes(text)) {
-            CACHED_PHRASES[cacheKey] = publicUrl;
+            CACHED_PHRASES[cacheKey] = streamUrl;
         }
 
-        return publicUrl;
+        return streamUrl;
     } catch (error) {
         console.error("[TTS] Error generating audio:", error);
         throw error;
@@ -124,8 +100,7 @@ export async function pregenerateCachedAudio(): Promise<void> {
 
     for (const [key, text] of Object.entries(COMMON_PHRASES)) {
         try {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const url = await generateTTS(text, "nova");
+            await generateTTS(text, "nova");
             console.log(`[TTS] Pre-generated: ${key}`);
         } catch (error) {
             console.error(`[TTS] Failed to pre-generate ${key}:`, error);
@@ -135,9 +110,8 @@ export async function pregenerateCachedAudio(): Promise<void> {
     console.log("[TTS] Pre-generation complete");
 }
 
-// Clean up old audio files (call periodically)
+// Clean up old audio files (no longer needed with streaming approach)
 export async function cleanupOldAudioFiles(): Promise<void> {
-    // Implementation for cleaning up old temp files
-    // This would be run periodically to prevent disk space issues
-    console.log("[TTS] Cleanup not yet implemented");
+    // No cleanup needed - streaming approach doesn't create files
+    console.log("[TTS] Cleanup not needed with streaming approach");
 }

@@ -107,7 +107,9 @@ export async function POST(request: NextRequest) {
             audioUrl = await generateTTS(greetingText, patientVoice);
             // Make URL absolute
             const baseUrl = getAppUrl();
-            const fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
+            let fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
+            // Escape & for XML
+            fullAudioUrl = fullAudioUrl.replace(/&/g, '&amp;');
 
             console.log("[VOICE] TTS generated, URL:", fullAudioUrl);
 
@@ -128,7 +130,9 @@ export async function POST(request: NextRequest) {
 
             // Generate TTS for mood question
             const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
-            const fullMoodAudioUrl = moodAudioUrl.startsWith("http") ? moodAudioUrl : `${baseUrl}${moodAudioUrl}`;
+            let fullMoodAudioUrl = moodAudioUrl.startsWith("http") ? moodAudioUrl : `${baseUrl}${moodAudioUrl}`;
+            // Escape & for XML
+            fullMoodAudioUrl = fullMoodAudioUrl.replace(/&/g, '&amp;');
 
             // Create TwiML that plays greeting, then asks mood question with gather
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
