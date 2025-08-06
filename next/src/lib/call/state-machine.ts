@@ -349,3 +349,112 @@ export function updateCallContext(context: CallContext, state: CallState, speech
 
     return context;
 }
+
+// Parse schedule from speech recognition result
+export function parseSchedule(speechResult: string): string {
+    // Simply return the speech result as the schedule description
+    // More sophisticated parsing could be added here
+    return speechResult || "No specific plans mentioned";
+}
+
+// Process number game response
+export function processNumberGame(
+    speechResult: string,
+    secretNumber: number
+): {
+    guess: number | null;
+    result: "winner" | "loser" | "invalid";
+} {
+    // Extract number from speech
+    const numbers = speechResult.match(/\d+/);
+
+    if (!numbers || numbers.length === 0) {
+        // Try to parse written numbers
+        const writtenNumbers: Record<string, number> = {
+            one: 1,
+            two: 2,
+            three: 3,
+            four: 4,
+            five: 5,
+            six: 6,
+            seven: 7,
+            eight: 8,
+            nine: 9,
+            ten: 10,
+        };
+
+        const lowerResult = speechResult.toLowerCase();
+        for (const [word, num] of Object.entries(writtenNumbers)) {
+            if (lowerResult.includes(word)) {
+                const isWinner = num === secretNumber;
+                return {
+                    guess: num,
+                    result: isWinner ? "winner" : "loser",
+                };
+            }
+        }
+
+        return {
+            guess: null,
+            result: "invalid",
+        };
+    }
+
+    const guess = parseInt(numbers[0]);
+
+    if (guess < 1 || guess > 10) {
+        return {
+            guess,
+            result: "invalid",
+        };
+    }
+
+    const isWinner = guess === secretNumber;
+    return {
+        guess,
+        result: isWinner ? "winner" : "loser",
+    };
+}
+
+// Analyze overall call response data
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function analyzeCallResponse(responseData: any): {
+    overallSentiment: "positive" | "neutral" | "negative";
+    needsFollowUp: boolean;
+} {
+    let sentimentScore = 0;
+    let needsFollowUp = false;
+
+    // Analyze mood
+    if (responseData.overall_mood === "happy") {
+        sentimentScore += 2;
+    } else if (responseData.overall_mood === "sad") {
+        sentimentScore -= 2;
+        needsFollowUp = true;
+    } else if (responseData.overall_mood === "neutral") {
+        sentimentScore += 0;
+    }
+
+    // Check medication compliance
+    if (responseData.medications_taken === false) {
+        needsFollowUp = true;
+        sentimentScore -= 1;
+    } else if (responseData.medications_taken === true) {
+        sentimentScore += 1;
+    }
+
+    // Determine overall sentiment
+    let overallSentiment: "positive" | "neutral" | "negative";
+    if (sentimentScore >= 2) {
+        overallSentiment = "positive";
+    } else if (sentimentScore <= -2) {
+        overallSentiment = "negative";
+    } else {
+        overallSentiment = "neutral";
+    }
+
+    return {
+        overallSentiment,
+        needsFollowUp,
+    };
+}
