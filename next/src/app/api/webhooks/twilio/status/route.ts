@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     try {
         // Parse form data from Twilio
         const formData = await request.formData();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const params: Record<string, any> = {};
         formData.forEach((value, key) => {
             params[key] = value.toString();
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update call status
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {
             status:
                 callStatus === "completed"
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
 
         // Twilio expects a 200 OK response
         return new NextResponse("OK", { status: 200 });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("[STATUS] Webhook error:", error);
 

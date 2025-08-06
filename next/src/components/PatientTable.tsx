@@ -46,6 +46,7 @@ export default function PatientTable({ patients }: PatientTableProps) {
             setTimeout(() => {
                 setCallSuccess(null);
             }, 5000);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error("Error triggering call:", error);
             setCallError(error.message || "Failed to initiate call");

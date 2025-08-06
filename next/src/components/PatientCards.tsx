@@ -45,6 +45,7 @@ export default function PatientCards({ patients }: PatientCardsProps) {
             setTimeout(() => {
                 setCallSuccess(null);
             }, 5000);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error("Error triggering call:", error);
             setCallError(error.message || "Failed to initiate call");
@@ -115,8 +116,8 @@ export default function PatientCards({ patients }: PatientCardsProps) {
                                 <h3 className="text-lg font-semibold text-gray-900">
                                     {patient.first_name} {patient.last_name}
                                 </h3>
-                                <a 
-                                    href={`tel:${patient.phone_number}`} 
+                                <a
+                                    href={`tel:${patient.phone_number}`}
                                     className="text-sm text-blue-600 hover:underline"
                                 >
                                     {patient.phone_number}
@@ -169,7 +170,10 @@ export default function PatientCards({ patients }: PatientCardsProps) {
                                 </div>
                             )}
                             <div className="text-xs text-gray-500 mt-2">
-                                Voice: {patient.voice ? patient.voice.charAt(0).toUpperCase() + patient.voice.slice(1) : "Nova"}
+                                Voice:{" "}
+                                {patient.voice
+                                    ? patient.voice.charAt(0).toUpperCase() + patient.voice.slice(1)
+                                    : "Nova"}
                             </div>
                         </div>
                     </div>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CallState } from "./state-machine";
 
 // Cost-optimized prompts - kept ultra-concise to minimize TTS costs

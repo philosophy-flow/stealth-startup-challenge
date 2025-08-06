@@ -12,6 +12,7 @@ export enum CallState {
 }
 
 // State transition logic
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function getNextState(currentState: CallState, response?: string): CallState {
     switch (currentState) {
         case CallState.GREETING:

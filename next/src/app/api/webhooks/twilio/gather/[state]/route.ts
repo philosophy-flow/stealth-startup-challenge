@@ -34,11 +34,12 @@ function mapUrlToCallState(urlState: string): CallState {
     }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { state: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ state: string }> }) {
     const { state } = await params;
     try {
         // Parse form data from Twilio
         const formData = await request.formData();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const twilioParams: Record<string, any> = {};
         formData.forEach((value, key) => {
             twilioParams[key] = value.toString();
@@ -165,6 +166,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
                 return new NextResponse(twiml, {
                     headers: { "Content-Type": "text/xml" },
                 });
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 // Fallback to built-in TTS
                 const twiml = generateEndCallTwiML(closingText);
@@ -257,7 +259,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                 <Response>
                     <Gather input="speech" speechTimeout="3" speechModel="phone_call"
-                            action="${getAppUrl()}/api/webhooks/twilio/gather/${params.state}"
+                            action="${getAppUrl()}/api/webhooks/twilio/gather/${state}"
                             method="POST">
                         <Say voice="alice">${nextPrompt}</Say>
                     </Gather>
@@ -269,6 +271,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
                 headers: { "Content-Type": "text/xml" },
             });
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("[GATHER] Error:", error);
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { validateTwilioWebhook } from "@/lib/twilio/client";
-import { generatePlayAndGatherTwiML } from "@/lib/twilio/twiml";
 import { generateTTS } from "@/lib/openai/tts";
 import { generatePrompt } from "@/lib/call/prompts";
 import { CallState } from "@/lib/call/state-machine";
@@ -12,6 +11,7 @@ export async function POST(request: NextRequest) {
     try {
         // Parse form data from Twilio
         const formData = await request.formData();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const params: Record<string, any> = {};
         formData.forEach((value, key) => {
             params[key] = value.toString();
@@ -107,9 +107,7 @@ export async function POST(request: NextRequest) {
             audioUrl = await generateTTS(greetingText, patientVoice);
             // Make URL absolute
             const baseUrl = getAppUrl();
-            const fullAudioUrl = audioUrl.startsWith("http")
-                ? audioUrl
-                : `${baseUrl}${audioUrl}`;
+            const fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
 
             console.log("[VOICE] TTS generated, URL:", fullAudioUrl);
 
@@ -130,9 +128,7 @@ export async function POST(request: NextRequest) {
 
             // Generate TTS for mood question
             const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
-            const fullMoodAudioUrl = moodAudioUrl.startsWith("http")
-                ? moodAudioUrl
-                : `${baseUrl}${moodAudioUrl}`;
+            const fullMoodAudioUrl = moodAudioUrl.startsWith("http") ? moodAudioUrl : `${baseUrl}${moodAudioUrl}`;
 
             // Create TwiML that plays greeting, then asks mood question with gather
             const twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -170,6 +166,7 @@ export async function POST(request: NextRequest) {
                 headers: { "Content-Type": "text/xml" },
             });
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("[VOICE] Webhook error:", error);
 

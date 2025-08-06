@@ -47,6 +47,7 @@ export default function NewPatientPage() {
             return;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { data, error: insertError } = await supabase
             .from("patients")
             .insert({

@@ -29,6 +29,7 @@ export default function EditPatientPage() {
 
     useEffect(() => {
         fetchPatient();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [patientId]);
 
     const fetchPatient = async () => {

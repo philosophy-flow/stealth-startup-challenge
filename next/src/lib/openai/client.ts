@@ -25,6 +25,7 @@ export function calculateGPTCost(inputTokens: number, outputTokens: number): num
 }
 
 // Log cost for monitoring (in production, send to analytics)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function logCost(service: string, cost: number, details?: any): void {
     console.log(`[COST] ${service}: $${cost.toFixed(4)}`, details);
 }

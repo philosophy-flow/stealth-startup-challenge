@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { twilioClient, formatPhoneNumber } from "@/lib/twilio/client";
-import { CallState } from "@/lib/call/state-machine";
 import { getAppUrl } from "@/lib/url";
-import type { Patient } from "@/types/business";
 
 export async function POST(request: NextRequest) {
     try {
@@ -90,6 +88,7 @@ export async function POST(request: NextRequest) {
             status: call.status,
             message: `Call initiated to ${patient.first_name} ${patient.last_name}`,
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("[TRIGGER] Error initiating call:", error);
 

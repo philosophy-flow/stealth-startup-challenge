@@ -124,6 +124,7 @@ export async function pregenerateCachedAudio(): Promise<void> {
 
     for (const [key, text] of Object.entries(COMMON_PHRASES)) {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const url = await generateTTS(text, "nova");
             console.log(`[TTS] Pre-generated: ${key}`);
         } catch (error) {
