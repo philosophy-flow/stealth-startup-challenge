@@ -12,7 +12,8 @@ CREATE TABLE patients (
   phone_number TEXT NOT NULL,
   family_member_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  voice VARCHAR DEFAULT 'nova' CHECK (voice IN ('alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'))
 );
 
 -- Calls table (with integrated response data)
