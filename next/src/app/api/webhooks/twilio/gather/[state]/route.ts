@@ -8,9 +8,8 @@ import {
     getNextState,
     parseMood,
     parseYesNo,
-    generateGameNumbers,
-    checkGameAnswer,
-    updateCallContext,
+    generateSecretNumber,
+    checkNumberGuess,
 } from "@/lib/call/state-machine";
 
 // Map URL state to CallState enum
@@ -34,6 +33,7 @@ function mapUrlToCallState(urlState: string): CallState {
 }
 
 export async function POST(request: NextRequest, { params }: { params: { state: string } }) {
+    const { state } = await params;
     try {
         // Parse form data from Twilio
         const formData = await request.formData();
@@ -44,9 +44,9 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
 
         const callSid = twilioParams.CallSid;
         const speechResult = twilioParams.SpeechResult || "";
-        const currentState = mapUrlToCallState(params.state);
+        const currentState = mapUrlToCallState(state);
 
-        console.log(`[GATHER] State: ${params.state}, CallSid: ${callSid}`);
+        console.log(`[GATHER] State: ${state}, CallSid: ${callSid}`);
         console.log(`[GATHER] Speech result: "${speechResult}"`);
 
         // Get call record
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
         }
 
         const patientName = `${callRecord.patient.first_name} ${callRecord.patient.last_name}`;
-        let responseData = callRecord.response_data || {};
+        const responseData = callRecord.response_data || {};
         let transcript = responseData.call_transcript || "";
 
         // Process the current state and speech result
@@ -103,17 +103,27 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
                 break;
 
             case CallState.NUMBER_GAME:
-                // This state introduces the game, no speech to process
-                const gameNumbers = generateGameNumbers();
-                responseData.game_numbers = gameNumbers;
                 break;
 
             case CallState.NUMBER_GAME_RESPONSE:
-                // Check the answer
-                const numbers = responseData.game_numbers || [3, 7, 2];
-                const isCorrect = checkGameAnswer(numbers, speechResult);
+                // Check the player's guess
+                const secret = generateSecretNumber();
+                const isCorrect = checkNumberGuess(secret, speechResult);
                 responseData.game_result = isCorrect ? "winner" : "loser";
                 transcript += `Patient: ${speechResult}\n`;
+
+                // Generate feedback response that will be spoken
+                const gameResponse = generatePrompt(CallState.NUMBER_GAME_RESPONSE, patientName, {
+                    gameResult: isCorrect,
+                    secretNumber: secret,
+                });
+                transcript += `System: ${gameResponse}\n`;
+
+                // Save game outcome
+                responseData.game_result = isCorrect ? "winner" : "loser";
+
+                // Store the feedback to be spoken
+                responseData.gameFeedback = gameResponse;
                 break;
 
             case CallState.CLOSING:
@@ -162,10 +172,18 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
         }
 
         // Generate prompt for next state
-        const nextPrompt = generatePrompt(nextState, patientName, responseData);
-        transcript += `System: ${nextPrompt}\n`;
+        // Special case: if we just processed NUMBER_GAME_RESPONSE, use the feedback we already generated
+        let nextPrompt: string;
+        if (currentState === CallState.NUMBER_GAME_RESPONSE && responseData.gameFeedback) {
+            // Use the game feedback (winner/loser announcement) as the next prompt
+            nextPrompt = responseData.gameFeedback;
+        } else {
+            // Generate normal prompt for next state
+            nextPrompt = generatePrompt(nextState, patientName, responseData);
+            transcript += `System: ${nextPrompt}\n`;
+        }
 
-        // Update transcript again with system prompt
+        // Update transcript with system prompt (if not already added for game feedback)
         responseData.call_transcript = transcript;
         await supabaseAdmin.from("calls").update({ response_data: responseData }).eq("call_sid", callSid);
 
@@ -206,19 +224,17 @@ export async function POST(request: NextRequest, { params }: { params: { state: 
                 baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`
             }/api/webhooks/twilio/gather/${nextStateUrl}`;
 
-            // Special handling for number game (just play, don't gather)
+            // Special handling for number game - gather the guess directly
             if (nextState === CallState.NUMBER_GAME) {
-                // Play the numbers, then immediately move to gather response
+                // Ask for the guess and gather response
                 const twiml = `<?xml version="1.0" encoding="UTF-8"?>
                     <Response>
-                        <Play>${fullAudioUrl}</Play>
-                        <Pause length="2"/>
                         <Gather input="speech" speechTimeout="4" speechModel="numbers_and_commands"
                                 action="${
                                     baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`
                                 }/api/webhooks/twilio/gather/number_game_response"
                                 method="POST">
-                            <Say voice="alice">What were those numbers?</Say>
+                            <Play>${fullAudioUrl}</Play>
                         </Gather>
                         <Say voice="alice">Let's continue.</Say>
                         <Redirect>${

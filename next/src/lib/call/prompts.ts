@@ -24,24 +24,23 @@ export function generatePrompt(state: CallState, patientName: string, context?: 
             return "Have you taken your medications?";
 
         case CallState.NUMBER_GAME:
-            // Generate and include numbers (40-45 chars)
-            const numbers = context?.gameNumbers || [3, 7, 2];
-            const numberString = numbers.join(", ");
-            return `Let's play a memory game. Remember: ${numberString}`;
+            // Guessing game prompt (65 chars)
+            return "Let's play a guessing game. I'm thinking of a number between 1 and 10. What's your guess?";
 
         case CallState.NUMBER_GAME_RESPONSE:
-            // 23 chars
-            return "What were those numbers?";
+            // This state now processes the guess and gives feedback
+            if (context?.gameResult === true) {
+                const number = context?.secretNumber || 5;
+                return `That's right! The number was ${number}. Great job!`;
+            } else if (context?.gameResult === false) {
+                const number = context?.secretNumber || 5;
+                return `Good try! The number was ${number}.`;
+            }
+            // Shouldn't reach here, but have a fallback
+            return "Let's continue.";
 
         case CallState.CLOSING:
-            // Handle game result (40-50 chars)
-            if (context?.gameResult === true) {
-                return "Great job! Have a wonderful day!";
-            } else if (context?.gameResult === false) {
-                const numbers = context?.gameNumbers || [3, 7, 2];
-                return `The numbers were ${numbers.join(", ")}. Have a great day!`;
-            }
-            // Default closing (29 chars)
+            // Simple closing without game result (already handled above)
             return "Thank you. Have a wonderful day!";
 
         case CallState.ERROR:
@@ -96,7 +95,6 @@ export function calculatePromptCost(prompts: string[]): number {
 // Get all prompts for a complete call (for cost estimation)
 export function getAllCallPrompts(patientName: string): string[] {
     const firstName = patientName.split(" ")[0];
-    const gameNumbers = [3, 7, 2];
 
     return [
         `Hi ${firstName}, this is your daily check-in call.`,
@@ -105,9 +103,9 @@ export function getAllCallPrompts(patientName: string): string[] {
         "What are your plans for today?",
         "Have you taken your medications?",
         "Very good!",
-        `Let's play a memory game. Remember: ${gameNumbers.join(", ")}`,
-        "What were those numbers?",
-        "Great job! Have a wonderful day!",
+        "Let's play a guessing game. I'm thinking of a number between 1 and 10. What's your guess?",
+        "That's right! The number was 7. Great job!",
+        "Thank you. Have a wonderful day!",
         "Goodbye!",
     ];
 }

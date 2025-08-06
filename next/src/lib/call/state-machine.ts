@@ -172,8 +172,10 @@ export function parseMood(speechResult: string): string {
 
     const negativePhrases = [
         "not so good",
-        "not well",
+        "not good",
+        "not so well",
         "not great",
+        "not so great",
         "been better",
         "having trouble",
         "having a hard time",
@@ -261,32 +263,44 @@ export function parseYesNo(speechResult: string): boolean | null {
     return null;
 }
 
-// Generate random numbers for the memory game
-export function generateGameNumbers(): number[] {
-    const numbers = [];
-    for (let i = 0; i < 3; i++) {
-        numbers.push(Math.floor(Math.random() * 9) + 1);
-    }
-    return numbers;
+// Generate a random number for the guessing game (1-10)
+export function generateSecretNumber(): number {
+    return Math.floor(Math.random() * 10) + 1;
 }
 
-// Check if the user correctly recalled the numbers
-export function checkGameAnswer(originalNumbers: number[], speechResult: string): boolean {
-    // Extract numbers from speech
-    const extractedNumbers = speechResult.match(/\d/g);
+// Check if the user correctly guessed the number
+export function checkNumberGuess(secretNumber: number, speechResult: string): boolean {
+    // Extract number from speech (handle various formats)
+    const match = speechResult.match(/\b([1-9]|10|one|two|three|four|five|six|seven|eight|nine|ten)\b/i);
 
-    if (!extractedNumbers || extractedNumbers.length !== originalNumbers.length) {
+    if (!match) {
         return false;
     }
 
-    // Check if numbers match in order
-    for (let i = 0; i < originalNumbers.length; i++) {
-        if (parseInt(extractedNumbers[i]) !== originalNumbers[i]) {
-            return false;
-        }
+    // Convert word numbers to digits
+    const numberWords: Record<string, number> = {
+        one: 1,
+        two: 2,
+        three: 3,
+        four: 4,
+        five: 5,
+        six: 6,
+        seven: 7,
+        eight: 8,
+        nine: 9,
+        ten: 10,
+    };
+
+    let guessedNumber: number;
+    const matchedValue = match[1].toLowerCase();
+
+    if (numberWords[matchedValue]) {
+        guessedNumber = numberWords[matchedValue];
+    } else {
+        guessedNumber = parseInt(matchedValue);
     }
 
-    return true;
+    return guessedNumber === secretNumber;
 }
 
 // State context to track throughout the call
@@ -299,7 +313,7 @@ export interface CallContext {
         mood?: string;
         schedule?: string;
         medicationTaken?: boolean;
-        gameNumbers?: number[];
+        secretNumber?: number;
         gameResult?: boolean;
     };
     transcript: string[];
@@ -326,8 +340,8 @@ export function updateCallContext(context: CallContext, state: CallState, speech
             break;
 
         case CallState.NUMBER_GAME_RESPONSE:
-            if (context.responses.gameNumbers) {
-                context.responses.gameResult = checkGameAnswer(context.responses.gameNumbers, speechResult);
+            if (context.responses.secretNumber) {
+                context.responses.gameResult = checkNumberGuess(context.responses.secretNumber, speechResult);
             }
             break;
     }
