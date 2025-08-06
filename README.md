@@ -12,9 +12,9 @@ This project was built in 48 hours for the Aviator Health interview challenge. I
 
 ## 🔗 Quick Links
 
--   **📱 [Live Demo](https://your-app.vercel.app)** - Try it now
+-   **📱 [Live Demo](https://aviatoragents.app/)** - Try it now
 -   **🎥 [Video Walkthrough](https://www.loom.com/share/1405b82b5ca14140aa2cefc1ea7a1493)** - 3-minute demo (when played at 1.5x speed)
--   **💻 [GitHub Repository](https://github.com/...)** - Source code
+-   **💻 [GitHub Repository](https://github.com/philosophy-flow/stealth-startup-challenge)** - Source code + README
 
 ## ✨ Features
 
