@@ -313,7 +313,7 @@ NEW: Generate TTS → Store Buffer in memory → Serve from cache ✅
     - Stateless design scales horizontally
     - No persistent storage requirements
 
-**The Result**: What started as a deployment disaster became the catalyst for a superior architecture. The refactored system is faster (cached responses), cheaper (no duplicate generations), more reliable (no filesystem dependencies), and actually deployable. Sometimes the best solutions come from the worst crises.
+**The Result**: What started as a deployment disaster became the catalyst for a superior architecture. The refactored system is faster (cached responses), cheaper (no duplicate generations), more reliable (no filesystem dependencies), and actually deployable.
 
 ## 📋 Technical Write-Up: Decisions, Trade-offs, and Next Steps
 
@@ -354,8 +354,8 @@ NEW: Generate TTS → Store Buffer in memory → Serve from cache ✅
 **Long-term Vision**:
 
 -   [ ] Medication database integration for detailed check-in (HIPAA-compliant)
--   [ ] Voice biomarker analysis / Emergency detection from sentiment
--   [ ] Emergency detection from sentiment
+-   [ ] Voice biomarker analysis for mood detection 
+-   [ ] Automated crisis response integration
 
 ### The Bottom Line
 
@@ -366,7 +366,7 @@ What I built in 48 hours:
 
 The current experience is functional but not delightful. The elderly deserve better than a script-reading robot, and I can build it given more time.
 
-This 48-hour build proves the concept. The path forward is clear: enhance reliability, add intelligence, and scale nationally.
+This 48-hour build proves the concept. The path forward is clear: enhance reliability, add intelligence, and optimize with scale.
 
 ## 📄 License
 
