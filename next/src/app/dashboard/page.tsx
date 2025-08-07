@@ -1,20 +1,17 @@
 import Link from "next/link";
 import { Users, Phone, Calendar, Smile } from "lucide-react";
 
-import { getPatients, getCalls, getTodaysCalls, getMoodStats } from "@/dal/patients";
+import { getPatients, getCalls, getMoodStats } from "@/dal/patients";
+import { TodaysCallsCount } from "@/components/TodaysCallsCount";
 
 export default async function DashboardPage() {
     const patients = await getPatients();
     const calls = await getCalls();
-    const todaysCalls = await getTodaysCalls();
     const moodStats = await getMoodStats();
 
     const patientsCount = patients ? patients.length : 0;
     const callsCount = calls ? calls.length : 0;
-    const todaysCallsCount = todaysCalls ? todaysCalls.length : 0;
-    const moodRate = moodStats.total > 0 
-        ? Math.round((moodStats.positive / moodStats.total) * 100)
-        : 0;
+    const moodRate = moodStats.total > 0 ? Math.round((moodStats.positive / moodStats.total) * 100) : 0;
 
     return (
         <div className="p-4 sm:p-6 md:p-8">
@@ -69,7 +66,9 @@ export default async function DashboardPage() {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Today&apos;s Calls</p>
-                            <p className="text-2xl font-semibold text-gray-900">{todaysCallsCount}</p>
+                            <p className="text-2xl font-semibold text-gray-900">
+                                <TodaysCallsCount calls={calls || []} />
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -81,7 +80,9 @@ export default async function DashboardPage() {
                         </div>
                         <div className="ml-4">
                             <p className="text-sm font-medium text-gray-600">Happiness Rate</p>
-                            <p className="text-2xl font-semibold text-gray-900">{moodStats.total > 0 ? `${moodRate}%` : 'N/A'}</p>
+                            <p className="text-2xl font-semibold text-gray-900">
+                                {moodStats.total > 0 ? `${moodRate}%` : "N/A"}
+                            </p>
                         </div>
                     </div>
                 </div>
