@@ -1,10 +1,10 @@
-# Aviator Health Challenge - AI Elder Care Companion
+# App Challenge - AI Elder Care Companion
 
 > An AI-powered system that makes daily check-in phone calls to elderly patients, helping families stay connected and monitor their loved ones' well-being.
 
 ## 🎯 Overview
 
-This project was built in 48 hours for the Aviator Health interview challenge. It's a complete elderly care system that combines AI voice technology with real phone calls to check on elderly patients daily. Family members get a dashboard to manage patients, trigger calls, and view detailed conversation logs.
+An elderly care system that combines AI voice technology with real phone calls to check on elderly patients daily. Family members get a dashboard to manage patients, trigger calls, and view detailed conversation logs.
 
 **The Problem**: Millions of elderly people live alone, and their families worry about their daily well-being but can't always call to check in.
 
@@ -248,7 +248,7 @@ The system is optimized for low operational costs:
 
 **Day 1 Evening - The Pivot**: Hit a critical decision point. Found myself refactoring components for "perfect" architecture. After 2 hours of abstraction with zero new features, I recognized the trap. Made a hard pivot: ship features, not abstractions.
 
-**Day 1 Night**: Went full sprint on voice system. Integrated Twilio (never used it before), OpenAI TTS, and built the entire call flow. The code wasn't pretty, but patients were getting real phone calls by midnight.
+**Day 1 Night**: Went full sprint on voice system. Integrated Twilio, OpenAI TTS, and built the entire call flow. The code wasn't pretty, but patients were capable of receiving real phone calls by midnight.
 
 **Day 2 Morning**: Recorded a demo, wrangled documentation, and deployed the application.
 
@@ -265,7 +265,7 @@ The system is optimized for low operational costs:
 ### What I'm Most Proud Of
 
 -   **It actually works** - Real phone calls to real numbers, not a simulation
--   **Cost optimization** - Got calls down to $0.005 each through prompt engineering
+-   **Cost optimization** - Got calls down to $0.005 each through careful programmatic prompt tuning
 -   **Learning velocity** - Went from zero knowledge of Twilio/Supabase to production deployment in 48 hours
 -   **The pivot** - Recognizing and escaping the refactoring trap saved the project
 
@@ -273,7 +273,7 @@ The system is optimized for low operational costs:
 
 **The Crisis**: With hours left before submission, I deployed to Vercel and watched (listened?) in horror as the OpenAI TTS functionality failed, leaving the graceless Twilio default voice to handle the conversation. The culprit? My audio caching strategy was writing files to `/public/temp/audio/`, which works locally but isn't permitted on Vercel's read-only filesystem.
 
-**Pivot to In-Memory Cache**: The original implementation had a critical flaw, so I used the time spent debugging to also clean up the imlpementation in general:
+**Pivot to In-Memory Cache**: The original implementation had a critical flaw, so I used the time spent debugging to also clean up a few other items:
 
 -   Cost tracking logged twice (on generation AND on serving)
 -   Manual XML string construction causing escaping issues (`&amp;` everywhere)
@@ -310,7 +310,7 @@ NEW: Generate TTS → Store Buffer in memory → Serve from cache ✅
 4. **Production-Ready Architecture**
 
     - Works on any serverless platform (Vercel, Netlify, AWS Lambda)
-    - Stateless design scales horizontally
+    - Stateless design scales horizontally,
     - No persistent storage requirements
 
 **The Result**: What started as a deployment disaster became the catalyst for a superior architecture. The refactored system is faster (cached responses), cheaper (no duplicate generations), more reliable (no filesystem dependencies), and actually deployable.
