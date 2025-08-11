@@ -8,7 +8,10 @@ temp/
 CLAUDE.md
 GAME-PLAN.md
 DOCUMENTATION.md
+DATA-FLOW-ANALYSIS.md
+SCALE-STRATEGY.md
 node_modules
+.claude/
 
 
 # Next.js build output

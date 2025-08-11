@@ -3,15 +3,9 @@ import twilio from "twilio";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateTTS } from "@/lib/openai/tts";
 import { generatePrompt, generateResponsePrompt } from "@/lib/call/prompts";
-import {
-    CallState,
-    getNextState,
-    parseMood,
-    parseSchedule,
-    parseYesNo,
-    processNumberGame,
-} from "@/lib/call/state-machine";
-import { getAppUrl } from "@/lib/url";
+import { getNextState, parseMood, parseSchedule, parseYesNo, processNumberGame } from "@/lib/call/state-machine";
+import { getAppUrl } from "@/utils/url";
+import { CallState } from "@/types/business";
 import type { VoiceType } from "@/types/business";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ state: string }> }) {

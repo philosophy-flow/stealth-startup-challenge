@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CallState } from "./state-machine";
+import { CallState } from "@/types/business";
 
 // Cost-optimized prompts - kept ultra-concise to minimize TTS costs
 // Target: Keep total call under 300 characters
@@ -84,46 +84,4 @@ export function generateResponsePrompt(state: CallState, patientResponse: string
         default:
             return "";
     }
-}
-
-// Calculate total prompt cost for monitoring
-export function calculatePromptCost(prompts: string[]): number {
-    const totalChars = prompts.reduce((sum, prompt) => sum + prompt.length, 0);
-    const costPer1kChars = 0.015; // tts-1 model cost
-    return (totalChars / 1000) * costPer1kChars;
-}
-
-// Get all prompts for a complete call (for cost estimation)
-export function getAllCallPrompts(patientName: string): string[] {
-    const firstName = patientName.split(" ")[0];
-
-    return [
-        `Hi ${firstName}, this is your daily check-in call.`,
-        "How are you feeling today?",
-        "That's wonderful to hear!",
-        "What are your plans for today?",
-        "Have you taken your medications?",
-        "Very good!",
-        "Let's play a guessing game. I'm thinking of a number between 1 and 10. What's your guess?",
-        "That's right! The number was 7. Great job!",
-        "Thank you. Have a wonderful day!",
-        "Goodbye!",
-    ];
-}
-
-// Estimate total call cost
-export function estimateCallCost(patientName: string): {
-    prompts: string[];
-    totalChars: number;
-    estimatedCost: number;
-} {
-    const prompts = getAllCallPrompts(patientName);
-    const totalChars = prompts.reduce((sum, prompt) => sum + prompt.length, 0);
-    const estimatedCost = calculatePromptCost(prompts);
-
-    return {
-        prompts,
-        totalChars,
-        estimatedCost,
-    };
 }

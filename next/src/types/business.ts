@@ -33,3 +33,16 @@ export interface Call {
     created_at: string;
     patient?: Patient;
 }
+
+// Conversation states for the call flow
+export enum CallState {
+    GREETING = "greeting",
+    MOOD_CHECK = "mood_check",
+    SCHEDULE_CHECK = "schedule_check",
+    MEDICATION_REMINDER = "medication_reminder",
+    NUMBER_GAME = "number_game",
+    NUMBER_GAME_RESPONSE = "number_game_response",
+    CLOSING = "closing",
+    ERROR = "error",
+    END = "end",
+}

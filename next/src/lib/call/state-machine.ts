@@ -1,15 +1,4 @@
-// Conversation states for the call flow
-export enum CallState {
-    GREETING = "greeting",
-    MOOD_CHECK = "mood_check",
-    SCHEDULE_CHECK = "schedule_check",
-    MEDICATION_REMINDER = "medication_reminder",
-    NUMBER_GAME = "number_game",
-    NUMBER_GAME_RESPONSE = "number_game_response",
-    CLOSING = "closing",
-    ERROR = "error",
-    END = "end",
-}
+import { CallState } from "@/types/business";
 
 // State transition logic
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -264,92 +253,6 @@ export function parseYesNo(speechResult: string): boolean | null {
     return null;
 }
 
-// Generate a random number for the guessing game (1-10)
-export function generateSecretNumber(): number {
-    return Math.floor(Math.random() * 10) + 1;
-}
-
-// Check if the user correctly guessed the number
-export function checkNumberGuess(secretNumber: number, speechResult: string): boolean {
-    // Extract number from speech (handle various formats)
-    const match = speechResult.match(/\b([1-9]|10|one|two|three|four|five|six|seven|eight|nine|ten)\b/i);
-
-    if (!match) {
-        return false;
-    }
-
-    // Convert word numbers to digits
-    const numberWords: Record<string, number> = {
-        one: 1,
-        two: 2,
-        three: 3,
-        four: 4,
-        five: 5,
-        six: 6,
-        seven: 7,
-        eight: 8,
-        nine: 9,
-        ten: 10,
-    };
-
-    let guessedNumber: number;
-    const matchedValue = match[1].toLowerCase();
-
-    if (numberWords[matchedValue]) {
-        guessedNumber = numberWords[matchedValue];
-    } else {
-        guessedNumber = parseInt(matchedValue);
-    }
-
-    return guessedNumber === secretNumber;
-}
-
-// State context to track throughout the call
-export interface CallContext {
-    patientId: string;
-    patientName: string;
-    callSid: string;
-    currentState: CallState;
-    responses: {
-        mood?: string;
-        schedule?: string;
-        medicationTaken?: boolean;
-        secretNumber?: number;
-        gameResult?: boolean;
-    };
-    transcript: string[];
-    startTime: Date;
-}
-
-// Update context with response
-export function updateCallContext(context: CallContext, state: CallState, speechResult: string): CallContext {
-    // Add to transcript
-    context.transcript.push(`Patient: ${speechResult}`);
-
-    // Update specific responses based on state
-    switch (state) {
-        case CallState.MOOD_CHECK:
-            context.responses.mood = parseMood(speechResult);
-            break;
-
-        case CallState.SCHEDULE_CHECK:
-            context.responses.schedule = speechResult;
-            break;
-
-        case CallState.MEDICATION_REMINDER:
-            context.responses.medicationTaken = parseYesNo(speechResult) ?? false;
-            break;
-
-        case CallState.NUMBER_GAME_RESPONSE:
-            if (context.responses.secretNumber) {
-                context.responses.gameResult = checkNumberGuess(context.responses.secretNumber, speechResult);
-            }
-            break;
-    }
-
-    return context;
-}
-
 // Parse schedule from speech recognition result
 export function parseSchedule(speechResult: string): string {
     // Simply return the speech result as the schedule description
@@ -413,48 +316,5 @@ export function processNumberGame(
     return {
         guess,
         result: isWinner ? "winner" : "loser",
-    };
-}
-
-// Analyze overall call response data
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function analyzeCallResponse(responseData: any): {
-    overallSentiment: "positive" | "neutral" | "negative";
-    needsFollowUp: boolean;
-} {
-    let sentimentScore = 0;
-    let needsFollowUp = false;
-
-    // Analyze mood
-    if (responseData.overall_mood === "happy") {
-        sentimentScore += 2;
-    } else if (responseData.overall_mood === "sad") {
-        sentimentScore -= 2;
-        needsFollowUp = true;
-    } else if (responseData.overall_mood === "neutral") {
-        sentimentScore += 0;
-    }
-
-    // Check medication compliance
-    if (responseData.medications_taken === false) {
-        needsFollowUp = true;
-        sentimentScore -= 1;
-    } else if (responseData.medications_taken === true) {
-        sentimentScore += 1;
-    }
-
-    // Determine overall sentiment
-    let overallSentiment: "positive" | "neutral" | "negative";
-    if (sentimentScore >= 2) {
-        overallSentiment = "positive";
-    } else if (sentimentScore <= -2) {
-        overallSentiment = "negative";
-    } else {
-        overallSentiment = "neutral";
-    }
-
-    return {
-        overallSentiment,
-        needsFollowUp,
     };
 }

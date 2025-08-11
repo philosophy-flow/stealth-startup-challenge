@@ -4,8 +4,8 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { validateTwilioWebhook } from "@/lib/twilio/client";
 import { generateTTS } from "@/lib/openai/tts";
 import { generatePrompt } from "@/lib/call/prompts";
-import { CallState } from "@/lib/call/state-machine";
-import { getAppUrl } from "@/lib/url";
+import { getAppUrl } from "@/utils/url";
+import { CallState } from "@/types/business";
 import type { VoiceType } from "@/types/business";
 
 export async function POST(request: NextRequest) {

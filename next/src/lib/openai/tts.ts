@@ -1,18 +1,6 @@
 import { openai, calculateTTSCost, logCost } from "./client";
 import { audioCache } from "./audio-cache";
 
-// Common phrases that can be pre-cached (for future use)
-export const COMMON_PHRASES = {
-    greeting: "Hello! This is your daily check-in call.",
-    mood_check: "How are you feeling today?",
-    schedule_check: "What are your plans for today?",
-    medication_reminder: "Have you taken your medications?",
-    game_intro: "Let's play a quick memory game. Remember these numbers.",
-    closing: "Thank you for chatting. Have a wonderful day!",
-    error: "I'm sorry, I didn't catch that. Could you repeat?",
-    goodbye: "Goodbye!",
-};
-
 // Store generated audio in memory with unique ID
 const audioStore = new Map<string, Buffer>();
 
