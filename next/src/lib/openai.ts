@@ -1,5 +1,10 @@
-import { openai, calculateTTSCost, logCost } from "./client";
+import OpenAI from "openai";
 import { getFromCache, storeAudio, generateAudioId } from "@/utils/audio";
+import { logCost, calculateTTSCost } from "@/utils/logging";
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY!,
+});
 
 const pendingRequests = new Map<string, Promise<Buffer>>();
 
@@ -18,7 +23,6 @@ export async function generateTTS(
         const pending = pendingRequests.get(requestKey);
         if (pending) {
             console.log(`[TTS] Waiting for pending request: "${text.substring(0, 50)}..." with voice: ${voice}`);
-            const buffer = await pending;
             const audioId = generateAudioId(text, voice);
             return `/api/audio/cached/${audioId}`;
         }
@@ -32,13 +36,15 @@ export async function generateTTS(
             text: text.substring(0, 100),
         });
 
-        const audioPromise = openai.audio.speech.create({
-            model: "tts-1",
-            voice,
-            input: text,
-            speed: 0.9,
-        }).then(response => response.arrayBuffer())
-          .then(arrayBuffer => Buffer.from(arrayBuffer));
+        const audioPromise = openai.audio.speech
+            .create({
+                model: "tts-1",
+                voice,
+                input: text,
+                speed: 0.9,
+            })
+            .then((response) => response.arrayBuffer())
+            .then((arrayBuffer) => Buffer.from(arrayBuffer));
 
         pendingRequests.set(requestKey, audioPromise);
 

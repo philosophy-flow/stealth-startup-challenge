@@ -1,10 +1,3 @@
-import OpenAI from "openai";
-
-// Initialize OpenAI client
-export const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY!,
-});
-
 // Cost tracking for monitoring
 const COSTS = {
     TTS_PER_1K_CHARS: 0.015, // tts-1 model cost

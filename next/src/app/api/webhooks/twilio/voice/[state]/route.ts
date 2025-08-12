@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { validateTwilioWebhook } from "@/lib/twilio";
-import { generateTTS } from "@/lib/openai/tts";
+import { generateTTS } from "@/lib/openai";
 import { getNextState, parseYesNo, processNumberGame } from "@/utils/calls";
 import { getAppUrl } from "@/utils/url";
 import { CallState } from "@/types/business";

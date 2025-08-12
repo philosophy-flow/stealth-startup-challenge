@@ -215,11 +215,12 @@ aviator-health-challenge/
 │   │   ├── lib/                      # Core third-party logic
 │   │   │   ├── supabase/             # Database clients & data access functions
 │   │   │   ├── twilio.ts             # Twilio SDK wrapper and webhook validation
-│   │   │   └── openai/               # AI/TTS services
+│   │   │   └── openai.ts             # AI/TTS services
 │   │   ├── utils/                    # Core non-third-party logic
 │   │   │   ├── audio.ts              # Audio caching and buffer management
 │   │   │   ├── calls.ts              # Call handling logic (state machine)
 │   │   │   ├── format.ts             # Phone number and text formatting utilities
+│   │   │   ├── logging.ts            # Cost tracking and logging utilities
 │   │   │   └── url.ts                # URL helper utilities
 │   │   └── types/                    # TypeScript definitions
 │   └── public/                       # Static assets

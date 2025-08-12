@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { generateCallSummary } from "@/lib/openai/tts";
+import { generateCallSummary } from "@/lib/openai";
 
 export async function POST(request: NextRequest) {
     try {
