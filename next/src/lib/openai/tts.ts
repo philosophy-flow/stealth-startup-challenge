@@ -81,8 +81,11 @@ export function getAudioBuffer(audioId: string): Buffer | undefined {
     return audioStore.get(audioId);
 }
 
-// Generate a cost-optimized summary using GPT-4o-mini
-export async function generateCallSummary(transcript: string, patientName: string): Promise<string> {
+// Generate a cost-optimized summary and mood using GPT-4o-mini
+export async function generateCallSummary(
+    transcript: string,
+    patientName: string
+): Promise<{ summary: string; mood: string }> {
     try {
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini", // CHEAPEST GPT model
@@ -90,31 +93,36 @@ export async function generateCallSummary(transcript: string, patientName: strin
                 {
                     role: "system",
                     content:
-                        "Summarize this elderly patient call in 1-2 concise sentences. Focus on mood and any concerns.",
+                        "Summarize this elderly patient call in 1-2 concise sentences. Also classify the overall mood as exactly one of: positive, negative, or neutral. Return JSON format: {summary: string, mood: string}",
                 },
                 {
                     role: "user",
                     content: `Patient: ${patientName}\nTranscript: ${transcript}`,
                 },
             ],
-            max_tokens: 100, // Limit output to control costs
+            max_tokens: 150, // Slightly increased for JSON response
             temperature: 0.7,
+            response_format: { type: "json_object" },
         });
 
-        const summary = completion.choices[0].message.content || "";
+        const response = completion.choices[0].message.content || "{}";
+        const parsed = JSON.parse(response);
+
+        const summary = parsed.summary || "Unable to generate summary.";
+        const mood = parsed.mood || "unknown";
 
         // Log approximate cost (rough estimate)
         const inputTokens = transcript.length / 4; // Rough approximation
-        const outputTokens = summary.length / 4;
+        const outputTokens = response.length / 4;
         const cost = (inputTokens / 1000000) * 0.15 + (outputTokens / 1000000) * 0.6;
         logCost("GPT-Summary", cost, {
             inputChars: transcript.length,
-            outputChars: summary.length,
+            outputChars: response.length,
         });
 
-        return summary;
+        return { summary, mood };
     } catch (error) {
         console.error("[GPT] Error generating summary:", error);
-        return "Unable to generate summary.";
+        return { summary: "Unable to generate summary.", mood: "unknown" };
     }
 }

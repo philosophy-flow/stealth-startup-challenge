@@ -52,17 +52,19 @@ export async function POST(request: NextRequest) {
             const transcript = responseData.call_transcript || "";
             const patientName = `${callRecord.patient.first_name} ${callRecord.patient.last_name}`;
 
-            // Generate summary if we have a transcript
+            // Generate summary and mood if we have a transcript
             if (transcript) {
                 try {
-                    const summary = await generateCallSummary(transcript, patientName);
+                    const { summary, mood } = await generateCallSummary(transcript, patientName);
                     responseData.call_summary = summary;
+                    responseData.overall_mood = mood;
                     updateData.response_data = responseData;
 
-                    console.log("[STATUS] Generated summary:", summary);
+                    console.log("[STATUS] Generated summary:", summary, "Mood:", mood);
                 } catch (summaryError) {
                     console.error("[STATUS] Failed to generate summary:", summaryError);
                     responseData.call_summary = "Call completed successfully.";
+                    responseData.overall_mood = "unknown";
                     updateData.response_data = responseData;
                 }
             }

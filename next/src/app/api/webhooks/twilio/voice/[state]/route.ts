@@ -3,7 +3,7 @@ import twilio from "twilio";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { validateTwilioWebhook } from "@/lib/twilio/client";
 import { generateTTS } from "@/lib/openai/tts";
-import { getNextState, parseMood, parseSchedule, parseYesNo, processNumberGame } from "@/lib/call/state-machine";
+import { getNextState, parseYesNo, processNumberGame } from "@/utils/calls";
 import { getAppUrl } from "@/utils/url";
 import { CallState } from "@/types/business";
 import type { VoiceType } from "@/types/business";
@@ -245,7 +245,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
             });
         }
 
-        const patientName = `${callRecord.patient.first_name} ${callRecord.patient.last_name}`;
         const patientVoice = (callRecord.patient.voice || "nova") as VoiceType;
 
         // Get existing response data
@@ -272,11 +271,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
         // Process response based on current state
         switch (state) {
             case CallState.MOOD_CHECK:
-                responseData.overall_mood = parseMood(speechResult);
+                // Mood will be determined by AI at call completion
+                responseData.overall_mood = "unknown";
                 break;
 
             case CallState.SCHEDULE_CHECK:
-                responseData.todays_agenda = parseSchedule(speechResult);
+                responseData.todays_agenda = speechResult || "No specific plans mentioned";
                 break;
 
             case CallState.MEDICATION_REMINDER:
