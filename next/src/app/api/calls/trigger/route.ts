@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { twilioClient, formatPhoneNumber } from "@/lib/twilio";
+import { twilioClient } from "@/lib/twilio";
 import { getAppUrl } from "@/utils/url";
+import { formatPhoneNumber } from "@/utils/format";
 
 export async function POST(request: NextRequest) {
     try {
