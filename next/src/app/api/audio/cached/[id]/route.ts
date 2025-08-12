@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAudioBuffer } from "@/lib/openai/tts";
+import { getAudioBuffer } from "@/utils/audio";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
     try {

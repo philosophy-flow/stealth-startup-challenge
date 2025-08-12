@@ -215,8 +215,9 @@ aviator-health-challenge/
 │   │   ├── lib/                      # Core third-party logic
 │   │   │   ├── supabase/             # Database clients & data access functions
 │   │   │   ├── twilio.ts             # Phone integration utilities
-│   │   │   └── openai/               # AI/TTS services + audio cache
+│   │   │   └── openai/               # AI/TTS services
 │   │   ├── utils/                    # Core non-third-party logic
+│   │   │   ├── audio.ts              # Audio caching and buffer management
 │   │   │   ├── calls.ts              # Call handling logic (state machine)
 │   │   │   └── url.ts                # URL helper utilities
 │   │   └── types/                    # TypeScript definitions
@@ -227,13 +228,14 @@ aviator-health-challenge/
 
 ## 💰 Cost Analysis
 
-The system is optimized for low operational costs:
+The system is optimized for low operational costs with precise tracking:
 
 -   **Per Call**: ~$0.005
     -   Twilio: ~$0.003 (1-minute call)
     -   OpenAI TTS: ~$0.001 (300 characters)
     -   OpenAI GPT: ~$0.001 (summary + mood analysis in single call)
 -   **Monthly (100 patients, daily calls)**: ~$15
+-   **Cost Tracking**: Uses actual token counts from OpenAI API responses for accurate billing
 
 ## 🔒 Security
 
@@ -292,10 +294,11 @@ NEW: Generate TTS → Store Buffer in memory → Serve from cache ✅
 
 **Technical Improvements**:
 
-1. **In-Memory Audio Cache** - Audio buffers stored in a Map with 5-minute TTL
+1. **In-Memory Audio Cache** - Audio buffers stored using functional pattern with 5-minute TTL
 
     - No filesystem access required
     - Automatic cleanup prevents memory leaks
+    - Functional pattern aligns with codebase architecture (no singletons/classes)
     - Cache hits prevent duplicate API calls
 
 2. **Proper TwiML Library Usage** - Replaced all manual XML construction
