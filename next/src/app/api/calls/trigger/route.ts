@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         const call = await twilioClient.calls.create({
             to: formattedPhone,
             from: process.env.TWILIO_PHONE_NUMBER!,
-            url: `${webhookBaseUrl}/api/webhooks/twilio/voice`,
+            url: `${webhookBaseUrl}/api/webhooks/twilio/voice/initial`,
             statusCallback: `${webhookBaseUrl}/api/webhooks/twilio/status`,
             statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
             machineDetection: "Enable",
