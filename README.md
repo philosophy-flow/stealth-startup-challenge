@@ -212,13 +212,13 @@ aviator-health-challenge/
 │   │   │       ├── calls/trigger/    # Initiate outbound calls
 │   │   │       └── webhooks/twilio/  # Voice webhooks (unified handler)
 │   │   ├── components/               # React components
-│   │   ├── dal/                      # Data Access Layer
-│   │   ├── lib/                      # Core libraries
-│   │   │   ├── supabase/             # Database clients
-│   │   │   ├── twilio/               # Phone integration
+│   │   ├── lib/                      # Core third-party logic
+│   │   │   ├── supabase/             # Database clients & data access functions
+│   │   │   ├── twilio.ts             # Phone integration utilities
 │   │   │   └── openai/               # AI/TTS services + audio cache
-│   │   ├── utils/                    # Utility functions
-│   │   │   └── calls.ts              # Call handling logic
+│   │   ├── utils/                    # Core non-third-party logic
+│   │   │   ├── calls.ts              # Call handling logic (state machine)
+│   │   │   └── url.ts                # URL helper utilities
 │   │   └── types/                    # TypeScript definitions
 │   └── public/                       # Static assets
 ├── schemas/                          # Database schemas
