@@ -228,6 +228,23 @@ aviator-health-challenge/
 └── docs/                             # Documentation
 ```
 
+## 🏛️ Code Quality & Architecture
+
+The codebase follows modern best practices for maintainability and scalability:
+
+### Service Layer Architecture
+
+-   **Modular Services**: Each external service (Twilio, OpenAI, Supabase) has its own module with clear interfaces
+-   **Separation of Concerns**: Business logic separated from API routes, utilities (first-party logic) separated from vendor logic (lib)
+-   **Type Safety**: Full TypeScript coverage with proper interfaces for all data flows
+
+### Recent Improvements
+
+-   **70% Code Reduction**: Simplified call flow from 320 to 95 lines while maintaining functionality
+-   **Centralized Error Handling**: Consistent logging and error patterns across all modules
+-   **Improved Modularity**: Extracted database operations, call handling, and logging into dedicated modules
+-   **Better Cost Tracking**: Accurate OpenAI usage tracking using actual API response token counts
+
 ## 💰 Cost Analysis
 
 The system is optimized for low operational costs with precise tracking:

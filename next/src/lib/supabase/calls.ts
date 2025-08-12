@@ -3,17 +3,21 @@
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { Patient } from "@/types/business";
+import type { CallUpdateData } from "@/types/business";
 
 export async function verifyPatientOwnership(patientId: string): Promise<Patient | null> {
     const supabase = await createClient();
-    
+
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+        data: { user },
+        error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
         return null;
     }
-    
+
     // Get patient details and verify ownership
     const { data: patient, error: patientError } = await supabase
         .from("patients")
@@ -21,19 +25,15 @@ export async function verifyPatientOwnership(patientId: string): Promise<Patient
         .eq("id", patientId)
         .eq("family_member_id", user.id)
         .single();
-    
+
     if (patientError || !patient) {
         return null;
     }
-    
+
     return patient;
 }
 
-export async function createCallRecord(
-    patientId: string,
-    callSid: string,
-    patientName: string
-) {
+export async function createCallRecord(patientId: string, callSid: string, patientName: string) {
     const { data: callRecord, error: insertError } = await supabaseAdmin
         .from("calls")
         .insert({
@@ -48,10 +48,32 @@ export async function createCallRecord(
         })
         .select()
         .single();
-    
+
     if (insertError) {
         throw new Error(`Failed to create call record: ${insertError.message}`);
     }
-    
+
     return callRecord;
+}
+
+export async function getCallWithPatient(callSid: string) {
+    const { data: callRecord, error } = await supabaseAdmin
+        .from("calls")
+        .select("*, patient:patients(*)")
+        .eq("call_sid", callSid)
+        .single();
+
+    if (error) {
+        return null;
+    }
+
+    return callRecord;
+}
+
+export async function updateCallStatus(callSid: string, updateData: CallUpdateData) {
+    const { error } = await supabaseAdmin.from("calls").update(updateData).eq("call_sid", callSid);
+
+    if (error) {
+        throw new Error(`Failed to update call status: ${error.message}`);
+    }
 }

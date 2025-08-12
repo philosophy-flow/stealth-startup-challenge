@@ -46,3 +46,18 @@ export enum CallState {
     ERROR = "error",
     END = "end",
 }
+
+// Type for Twilio status webhook parameters
+export interface TwilioStatusParams {
+    CallSid: string;
+    CallStatus: string;
+    CallDuration?: string;
+    [key: string]: string | undefined;
+}
+
+export interface CallUpdateData {
+    status: "completed" | "failed" | "in_progress";
+    call_duration?: number;
+    response_data?: Record<string, unknown>;
+    [key: string]: unknown; // Allow additional properties for Supabase
+}
