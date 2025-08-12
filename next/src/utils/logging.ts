@@ -16,3 +16,13 @@ export function calculateTTSCost(text: string): number {
 export function logCost(service: string, cost: number, details?: any): void {
     console.log(`[COST] ${service}: $${cost.toFixed(4)}`, details);
 }
+
+// General logging utilities
+export function log(prefix: string, message: string): void {
+    console.log(`[${prefix}] ${message}`);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function logError(prefix: string, message: string, error?: any): void {
+    console.error(`[${prefix}] ${message}`, error);
+}
