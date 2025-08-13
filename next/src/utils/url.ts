@@ -18,3 +18,10 @@ export function getAppUrl(): string {
     // Fallback to localhost for local development
     return "http://localhost:3000";
 }
+
+/**
+ * Make a URL absolute by prepending the app URL if needed
+ */
+export function makeAbsoluteUrl(url: string): string {
+    return url.startsWith("http") ? url : `${getAppUrl()}${url}`;
+}

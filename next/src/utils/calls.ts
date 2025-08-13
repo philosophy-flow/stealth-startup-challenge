@@ -1,8 +1,9 @@
 import { CallState } from "@/types/business";
-import type { CallUpdateData, Call, Patient } from "@/types/business";
+import type { CallUpdateData, Call, Patient, VoiceType } from "@/types/business";
 import type { TwilioStatusParams } from "@/types/business";
-import { generateCallSummary } from "@/lib/openai";
+import { generateCallSummary, generateTTS } from "@/lib/openai";
 import { log, logError, calculateTTSCost, logCost } from "@/utils/logging";
+import { makeAbsoluteUrl } from "@/utils/url";
 
 // Yes/No response patterns
 const YES_PATTERNS = new Set(["yes", "yeah", "yep", "sure", "i have", "i did"]);
@@ -181,4 +182,18 @@ export async function processCallCompletion(
     }
 
     return buildCallUpdateData(mappedStatus, callDuration, responseData);
+}
+
+// Generate TTS with fallback to text-to-speech if generation fails
+export async function generateTTSWithFallback(
+    text: string,
+    voice: VoiceType
+): Promise<{ audioUrl?: string; fallbackText?: string }> {
+    try {
+        const audioUrl = await generateTTS(text, voice);
+        return { audioUrl: makeAbsoluteUrl(audioUrl) };
+    } catch (error) {
+        logError("VOICE", "TTS generation failed", error);
+        return { fallbackText: text };
+    }
 }

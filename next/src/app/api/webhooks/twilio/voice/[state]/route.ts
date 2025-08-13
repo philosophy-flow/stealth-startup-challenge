@@ -1,18 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCallWithPatient, updateCallStatus, updateResponseData } from "@/lib/supabase/calls";
-import { validateTwilioWebhook } from "@/lib/twilio";
+import { NextRequest } from "next/server";
+import { getCallWithPatient, updateResponseData } from "@/lib/supabase/calls";
 import {
     createQuestionResponse,
     createPlayAndHangupResponse,
     createErrorResponse,
-    createSimpleHangupResponse,
-    createGreetingWithQuestion,
 } from "@/lib/twilio/twiml";
-import { generateTTS } from "@/lib/openai";
-import { getNextState, parseYesNo, processNumberGame } from "@/utils/calls";
+import {
+    getNextState,
+    parseYesNo,
+    processNumberGame,
+    parseTwilioFormData,
+    generateTTSWithFallback,
+} from "@/utils/calls";
 import { getAppUrl } from "@/utils/url";
+import { log, logError } from "@/utils/logging";
 import { CallState } from "@/types/business";
 import type { VoiceType } from "@/types/business";
+import { initializeConnection } from "./initializeConnection";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ state: string }> }) {
     try {
@@ -21,119 +25,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
 
         // Parse form data from Twilio
         const formData = await request.formData();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const twilioParams: Record<string, any> = {};
-        formData.forEach((value, key) => {
-            twilioParams[key] = value.toString();
-        });
+        const twilioParams = await parseTwilioFormData(formData);
 
         const callSid = twilioParams.CallSid;
         const speechResult = twilioParams.SpeechResult || "";
         const answeredBy = twilioParams.AnsweredBy;
 
-        console.log(`[VOICE] State: ${currentState}, CallSid: ${callSid}`);
-        console.log(`[VOICE] Speech result: "${speechResult}"`);
+        log("VOICE", `State: ${currentState}, CallSid: ${callSid}`);
+        log("VOICE", `Speech result: "${speechResult}"`);
 
-        // Handle initial connection (previously in separate voice/route.ts)
+        // Handle initial connection
         if (currentState === "initial") {
-            console.log("[VOICE] Initial connection, AnsweredBy:", answeredBy);
-
-            // Validate Twilio webhook signature for initial connection
-            const signature = request.headers.get("X-Twilio-Signature");
-            const url = request.url;
-
-            // Skip validation in development if signature is missing
-            if (process.env.NODE_ENV === "production" && signature) {
-                const isValid = validateTwilioWebhook(process.env.TWILIO_AUTH_TOKEN!, signature, url, twilioParams);
-
-                if (!isValid) {
-                    console.error("[VOICE] Invalid Twilio signature");
-                    return new NextResponse("Unauthorized", { status: 401 });
-                }
-            }
-
-            // Handle machine detection
-            if (answeredBy === "machine_start" || answeredBy === "fax") {
-                console.log("[VOICE] Call answered by machine/fax, hanging up");
-
-                // Update call status
-                await updateCallStatus(callSid, {
-                    status: "failed",
-                    response_data: {
-                        error: "Answered by machine or fax",
-                    },
-                });
-
-                // Hang up
-                return createSimpleHangupResponse();
-            }
-
-            // Get call record from database
-            const callRecord = await getCallWithPatient(callSid);
-
-            if (!callRecord) {
-                console.error("[VOICE] Call record not found");
-
-                // Create a simple greeting anyway
-                return createErrorResponse({
-                    message: "Hello, this is your daily check-in call.",
-                });
-            }
-
-            // Update call status to in_progress
-            await updateCallStatus(callSid, {
-                status: "in_progress",
-                call_start_time: new Date().toISOString(),
-            });
-
-            const patientVoice = (callRecord.patient.voice || "nova") as VoiceType;
-
-            // Generate greeting and mood question
-            const greetingText = `Hi ${callRecord.patient.first_name}, this is your daily check-in call.`;
-            const moodQuestion = "How are you feeling today?";
-
-            console.log("[VOICE] Generating TTS for greeting:", greetingText);
-            console.log("[VOICE] Using voice:", patientVoice);
-
-            // Generate TTS audio
-            try {
-                const greetingAudioUrl = await generateTTS(greetingText, patientVoice);
-                const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
-
-                // Make URLs absolute
-                const baseUrl = getAppUrl();
-                const fullGreetingUrl = greetingAudioUrl.startsWith("http")
-                    ? greetingAudioUrl
-                    : `${baseUrl}${greetingAudioUrl}`;
-                const fullMoodUrl = moodAudioUrl.startsWith("http") ? moodAudioUrl : `${baseUrl}${moodAudioUrl}`;
-
-                console.log("[VOICE] TTS generated successfully");
-
-                // Add greeting and mood question to transcript
-                await updateResponseData(callSid, {
-                    patient_name: `${callRecord.patient.first_name} ${callRecord.patient.last_name}`,
-                    call_transcript: `System: ${greetingText}\nSystem: ${moodQuestion}\n`,
-                });
-
-                // Generate TwiML with greeting and question
-                return createGreetingWithQuestion(fullGreetingUrl, undefined, {
-                    audioUrl: fullMoodUrl,
-                    actionUrl: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
-                    noInputAction: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
-                    noInputMessage: "I didn't hear a response. Let's continue.",
-                });
-            } catch (ttsError) {
-                console.error("[VOICE] TTS generation failed:", ttsError);
-
-                // Fallback to Twilio's built-in TTS
-                const baseUrl = getAppUrl();
-                return createGreetingWithQuestion(undefined, greetingText, {
-                    fallbackText: moodQuestion,
-                    actionUrl: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
-                    noInputAction: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
-                    noInputMessage: "I didn't hear a response. Let's continue.",
-                });
-            }
+            return initializeConnection(request, callSid, answeredBy, twilioParams);
         }
 
         // Rest of the code handles subsequent states after initial connection
@@ -142,7 +45,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
         const callRecord = await getCallWithPatient(callSid);
 
         if (!callRecord) {
-            console.error("[VOICE] Call record not found");
+            logError("VOICE", "Call record not found");
 
             // Return error message
             return createErrorResponse({
@@ -215,7 +118,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
             case CallState.CLOSING:
                 // Patient said something during closing, just acknowledge
                 if (speechResult) {
-                    console.log("[VOICE] Patient response during closing:", speechResult);
+                    log("VOICE", `Patient response during closing: ${speechResult}`);
                 }
                 break;
         }
@@ -231,27 +134,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
 
         // If we're ending the call
         if (nextState === CallState.END || state === CallState.CLOSING) {
-            console.log("[VOICE] Call ending");
+            log("VOICE", "Call ending");
 
             // Generate closing message based on context
             const closingText = `Thank you, ${callRecord.patient.first_name}. Have a wonderful day!`;
 
-            try {
-                const audioUrl = await generateTTS(closingText, patientVoice);
-                const baseUrl = getAppUrl();
-                const fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
+            const { audioUrl, fallbackText } = await generateTTSWithFallback(closingText, patientVoice);
 
-                // Generate closing response with TTS
-                return createPlayAndHangupResponse({
-                    audioUrl: fullAudioUrl,
-                });
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (error) {
-                // Fallback to built-in TTS
-                return createPlayAndHangupResponse({
-                    fallbackText: closingText,
-                });
-            }
+            // Generate closing response with TTS or fallback
+            return createPlayAndHangupResponse({
+                audioUrl,
+                fallbackText,
+            });
         }
 
         // Generate prompt for next state
@@ -278,74 +172,63 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
             transcript += `System: ${nextPrompt}\n`;
         }
 
-        console.log(`[VOICE] Moving to state: ${nextState}, prompt: ${nextPrompt}`);
+        log("VOICE", `Moving to state: ${nextState}, prompt: ${nextPrompt}`);
 
         // Generate TTS for next prompt
-        try {
-            const audioUrl = await generateTTS(nextPrompt, patientVoice);
-            const baseUrl = getAppUrl();
-            const fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
+        const { audioUrl, fallbackText } = await generateTTSWithFallback(nextPrompt, patientVoice);
+        const baseUrl = getAppUrl();
 
-            // Map next state to URL
-            let nextStateUrl = "";
-            switch (nextState) {
-                case CallState.MOOD_CHECK:
-                    nextStateUrl = "mood_check";
-                    break;
-                case CallState.SCHEDULE_CHECK:
-                    nextStateUrl = "schedule_check";
-                    break;
-                case CallState.MEDICATION_REMINDER:
-                    nextStateUrl = "medication_reminder";
-                    break;
-                case CallState.NUMBER_GAME:
-                    nextStateUrl = "number_game";
-                    break;
-                case CallState.NUMBER_GAME_RESPONSE:
-                    nextStateUrl = "number_game_response";
-                    break;
-                case CallState.CLOSING:
-                    nextStateUrl = "closing";
-                    break;
-                default:
-                    nextStateUrl = "closing";
-            }
+        // Map next state to URL
+        let nextStateUrl = "";
+        switch (nextState) {
+            case CallState.MOOD_CHECK:
+                nextStateUrl = "mood_check";
+                break;
+            case CallState.SCHEDULE_CHECK:
+                nextStateUrl = "schedule_check";
+                break;
+            case CallState.MEDICATION_REMINDER:
+                nextStateUrl = "medication_reminder";
+                break;
+            case CallState.NUMBER_GAME:
+                nextStateUrl = "number_game";
+                break;
+            case CallState.NUMBER_GAME_RESPONSE:
+                nextStateUrl = "number_game_response";
+                break;
+            case CallState.CLOSING:
+                nextStateUrl = "closing";
+                break;
+            default:
+                nextStateUrl = "closing";
+        }
 
-            const nextAction = `${baseUrl}/api/webhooks/twilio/voice/${nextStateUrl}`;
+        const nextAction = `${baseUrl}/api/webhooks/twilio/voice/${nextStateUrl}`;
 
-            // Special handling for number game - ask for their guess
-            if (nextState === CallState.NUMBER_GAME) {
-                return createQuestionResponse({
-                    audioUrl: fullAudioUrl,
-                    actionUrl: `${baseUrl}/api/webhooks/twilio/voice/number_game_response`,
-                    speechTimeout: 4,
-                    speechModel: "numbers_and_commands",
-                    noInputAction: `${baseUrl}/api/webhooks/twilio/voice/closing`,
-                    noInputMessage: "Let's continue.",
-                });
-            }
-
-            // Normal question flow
+        // Special handling for number game - ask for their guess
+        if (nextState === CallState.NUMBER_GAME) {
             return createQuestionResponse({
-                audioUrl: fullAudioUrl,
-                actionUrl: nextAction,
-                noInputAction: nextAction,
-                noInputMessage: "Let's continue.",
-            });
-        } catch (ttsError) {
-            console.error("[VOICE] TTS generation failed:", ttsError);
-
-            // Fallback to Twilio's built-in TTS
-            return createQuestionResponse({
-                fallbackText: nextPrompt,
-                actionUrl: `${getAppUrl()}/api/webhooks/twilio/voice/${state}`,
-                noInputAction: `${getAppUrl()}/api/webhooks/twilio/voice/closing`,
+                audioUrl,
+                fallbackText,
+                actionUrl: `${baseUrl}/api/webhooks/twilio/voice/number_game_response`,
+                speechTimeout: 4,
+                speechModel: "numbers_and_commands",
+                noInputAction: `${baseUrl}/api/webhooks/twilio/voice/closing`,
                 noInputMessage: "Let's continue.",
             });
         }
+
+        // Normal question flow
+        return createQuestionResponse({
+            audioUrl,
+            fallbackText,
+            actionUrl: nextAction,
+            noInputAction: nextAction,
+            noInputMessage: "Let's continue.",
+        });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-        console.error("[VOICE] Error:", error);
+        logError("VOICE", "Error processing webhook", error);
 
         // Return error response
         return createErrorResponse();
