@@ -19,7 +19,7 @@ export function validateTwilioWebhook(
 export async function initiatePatientCall(phoneNumber: string) {
     const formattedPhone = formatPhoneNumber(phoneNumber);
     const webhookBaseUrl = getAppUrl();
-    
+
     try {
         const call = await twilioClient.calls.create({
             to: formattedPhone,
@@ -30,7 +30,7 @@ export async function initiatePatientCall(phoneNumber: string) {
             machineDetection: "Enable",
             machineDetectionTimeout: 3000,
         });
-        
+
         return call;
     } catch (error) {
         // Check if it's a Twilio RestException
@@ -38,19 +38,19 @@ export async function initiatePatientCall(phoneNumber: string) {
             if (error.code === 20003) {
                 throw new Error("Invalid Twilio credentials. Please check your environment variables.");
             }
-            
+
             if (error.code === 21211) {
                 throw new Error("Invalid phone number format");
             }
-            
+
             throw error;
         }
-        
+
         // Re-throw if it's some other error type
         if (error instanceof Error) {
             throw error;
         }
-        
+
         // Fallback for non-Error types
         throw new Error("An unexpected error occurred");
     }

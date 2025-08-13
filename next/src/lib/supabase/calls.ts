@@ -77,3 +77,32 @@ export async function updateCallStatus(callSid: string, updateData: CallUpdateDa
         throw new Error(`Failed to update call status: ${error.message}`);
     }
 }
+
+export async function appendToTranscript(callSid: string, text: string, speaker: "System" | "Patient" = "System") {
+    const callRecord = await getCallWithPatient(callSid);
+    if (!callRecord) {
+        throw new Error(`Call not found: ${callSid}`);
+    }
+
+    const currentTranscript = (callRecord.response_data?.call_transcript as string) || "";
+    return updateCallStatus(callSid, {
+        response_data: {
+            ...callRecord.response_data,
+            call_transcript: `${currentTranscript}${speaker}: ${text}\n`,
+        },
+    });
+}
+
+export async function updateResponseData(callSid: string, newData: Record<string, unknown>) {
+    const callRecord = await getCallWithPatient(callSid);
+    if (!callRecord) {
+        throw new Error(`Call not found: ${callSid}`);
+    }
+
+    return updateCallStatus(callSid, {
+        response_data: {
+            ...callRecord.response_data,
+            ...newData,
+        },
+    });
+}

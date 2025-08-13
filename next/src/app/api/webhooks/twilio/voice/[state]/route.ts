@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import twilio from "twilio";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getCallWithPatient, updateCallStatus, updateResponseData } from "@/lib/supabase/calls";
 import { validateTwilioWebhook } from "@/lib/twilio";
+import {
+    createQuestionResponse,
+    createPlayAndHangupResponse,
+    createErrorResponse,
+    createSimpleHangupResponse,
+    createGreetingWithQuestion,
+} from "@/lib/twilio/twiml";
 import { generateTTS } from "@/lib/openai";
 import { getNextState, parseYesNo, processNumberGame } from "@/utils/calls";
 import { getAppUrl } from "@/utils/url";
@@ -51,59 +57,34 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
                 console.log("[VOICE] Call answered by machine/fax, hanging up");
 
                 // Update call status
-                await supabaseAdmin
-                    .from("calls")
-                    .update({
-                        status: "failed",
-                        response_data: {
-                            error: "Answered by machine or fax",
-                        },
-                    })
-                    .eq("call_sid", callSid);
-
-                // Hang up using TwiML library
-                const response = new twilio.twiml.VoiceResponse();
-                response.hangup();
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                await updateCallStatus(callSid, {
+                    status: "failed",
+                    response_data: {
+                        error: "Answered by machine or fax",
+                    },
                 });
+
+                // Hang up
+                return createSimpleHangupResponse();
             }
 
             // Get call record from database
-            const { data: callRecord, error: callError } = await supabaseAdmin
-                .from("calls")
-                .select("*, patient:patients(*)")
-                .eq("call_sid", callSid)
-                .single();
+            const callRecord = await getCallWithPatient(callSid);
 
-            if (callError || !callRecord) {
-                console.error("[VOICE] Call record not found:", callError);
+            if (!callRecord) {
+                console.error("[VOICE] Call record not found");
 
-                // Create a simple greeting anyway using TwiML library
-                const response = new twilio.twiml.VoiceResponse();
-                response.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    "Hello, this is your daily check-in call."
-                );
-                response.hangup();
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                // Create a simple greeting anyway
+                return createErrorResponse({
+                    message: "Hello, this is your daily check-in call.",
                 });
             }
 
             // Update call status to in_progress
-            await supabaseAdmin
-                .from("calls")
-                .update({
-                    status: "in_progress",
-                    call_start_time: new Date().toISOString(),
-                })
-                .eq("call_sid", callSid);
+            await updateCallStatus(callSid, {
+                status: "in_progress",
+                call_start_time: new Date().toISOString(),
+            });
 
             const patientVoice = (callRecord.patient.voice || "nova") as VoiceType;
 
@@ -129,90 +110,28 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
                 console.log("[VOICE] TTS generated successfully");
 
                 // Add greeting and mood question to transcript
-                await supabaseAdmin
-                    .from("calls")
-                    .update({
-                        response_data: {
-                            ...callRecord.response_data,
-                            patient_name: `${callRecord.patient.first_name} ${callRecord.patient.last_name}`,
-                            call_transcript: `System: ${greetingText}\nSystem: ${moodQuestion}\n`,
-                        },
-                    })
-                    .eq("call_sid", callSid);
-
-                // Generate TwiML using the library
-                const response = new twilio.twiml.VoiceResponse();
-
-                // Play greeting
-                response.play(fullGreetingUrl);
-
-                // Gather response with mood question
-                const gather = response.gather({
-                    input: ["speech"],
-                    speechTimeout: "3",
-                    speechModel: "phone_call",
-                    action: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
-                    method: "POST",
+                await updateResponseData(callSid, {
+                    patient_name: `${callRecord.patient.first_name} ${callRecord.patient.last_name}`,
+                    call_transcript: `System: ${greetingText}\nSystem: ${moodQuestion}\n`,
                 });
 
-                // Play mood question within gather
-                gather.play(fullMoodUrl);
-
-                // If no response, continue anyway
-                response.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    "I didn't hear a response. Let's continue."
-                );
-                response.redirect(`${baseUrl}/api/webhooks/twilio/voice/mood_check`);
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                // Generate TwiML with greeting and question
+                return createGreetingWithQuestion(fullGreetingUrl, undefined, {
+                    audioUrl: fullMoodUrl,
+                    actionUrl: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
+                    noInputAction: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
+                    noInputMessage: "I didn't hear a response. Let's continue.",
                 });
             } catch (ttsError) {
                 console.error("[VOICE] TTS generation failed:", ttsError);
 
-                // Fallback to Twilio's built-in TTS using the library
+                // Fallback to Twilio's built-in TTS
                 const baseUrl = getAppUrl();
-                const response = new twilio.twiml.VoiceResponse();
-
-                const gather = response.gather({
-                    input: ["speech"],
-                    speechTimeout: "3",
-                    speechModel: "phone_call",
-                    action: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
-                    method: "POST",
-                });
-
-                gather.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    greetingText
-                );
-                gather.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    moodQuestion
-                );
-
-                // If no response, continue anyway
-                response.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    "I didn't hear a response. Let's continue."
-                );
-                response.redirect(`${baseUrl}/api/webhooks/twilio/voice/mood_check`);
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                return createGreetingWithQuestion(undefined, greetingText, {
+                    fallbackText: moodQuestion,
+                    actionUrl: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
+                    noInputAction: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
+                    noInputMessage: "I didn't hear a response. Let's continue.",
                 });
             }
         }
@@ -220,28 +139,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
         // Rest of the code handles subsequent states after initial connection
 
         // Get call record from database
-        const { data: callRecord, error: callError } = await supabaseAdmin
-            .from("calls")
-            .select("*, patient:patients(*)")
-            .eq("call_sid", callSid)
-            .single();
+        const callRecord = await getCallWithPatient(callSid);
 
-        if (callError || !callRecord) {
-            console.error("[VOICE] Call record not found:", callError);
+        if (!callRecord) {
+            console.error("[VOICE] Call record not found");
 
-            // Return error message using TwiML library
-            const response = new twilio.twiml.VoiceResponse();
-            response.say(
-                {
-                    voice: "alice",
-                    language: "en-US",
-                },
-                "I'm sorry, I can't continue with this call."
-            );
-            response.hangup();
-
-            return new NextResponse(response.toString(), {
-                headers: { "Content-Type": "text/xml" },
+            // Return error message
+            return createErrorResponse({
+                message: "I'm sorry, I can't continue with this call.",
             });
         }
 
@@ -316,15 +221,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
         }
 
         // Update call with latest response data and transcript
-        await supabaseAdmin
-            .from("calls")
-            .update({
-                response_data: {
-                    ...responseData,
-                    call_transcript: transcript,
-                },
-            })
-            .eq("call_sid", callSid);
+        await updateResponseData(callSid, {
+            ...responseData,
+            call_transcript: transcript,
+        });
 
         // Get next state
         const nextState = getNextState(state);
@@ -341,29 +241,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
                 const baseUrl = getAppUrl();
                 const fullAudioUrl = audioUrl.startsWith("http") ? audioUrl : `${baseUrl}${audioUrl}`;
 
-                // Generate TwiML using the library
-                const response = new twilio.twiml.VoiceResponse();
-                response.play(fullAudioUrl);
-                response.hangup();
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                // Generate closing response with TTS
+                return createPlayAndHangupResponse({
+                    audioUrl: fullAudioUrl,
                 });
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
                 // Fallback to built-in TTS
-                const response = new twilio.twiml.VoiceResponse();
-                response.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    closingText
-                );
-                response.hangup();
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                return createPlayAndHangupResponse({
+                    fallbackText: closingText,
                 });
             }
         }
@@ -427,110 +313,41 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
 
             const nextAction = `${baseUrl}/api/webhooks/twilio/voice/${nextStateUrl}`;
 
-            // Generate TwiML using the library
-            const response = new twilio.twiml.VoiceResponse();
-
-            // Special handling for number game - gather the guess directly
+            // Special handling for number game - ask for their guess
             if (nextState === CallState.NUMBER_GAME) {
-                const gather = response.gather({
-                    input: ["speech"],
-                    speechTimeout: "4",
+                return createQuestionResponse({
+                    audioUrl: fullAudioUrl,
+                    actionUrl: `${baseUrl}/api/webhooks/twilio/voice/number_game_response`,
+                    speechTimeout: 4,
                     speechModel: "numbers_and_commands",
-                    action: `${baseUrl}/api/webhooks/twilio/voice/number_game_response`,
-                    method: "POST",
-                });
-                gather.play(fullAudioUrl);
-
-                // Fallback if no response
-                response.say(
-                    {
-                        voice: "alice",
-                        language: "en-US",
-                    },
-                    "Let's continue."
-                );
-                response.redirect(`${baseUrl}/api/webhooks/twilio/voice/closing`);
-
-                return new NextResponse(response.toString(), {
-                    headers: { "Content-Type": "text/xml" },
+                    noInputAction: `${baseUrl}/api/webhooks/twilio/voice/closing`,
+                    noInputMessage: "Let's continue.",
                 });
             }
 
-            // Normal gather flow
-            const gather = response.gather({
-                input: ["speech"],
-                speechTimeout: "3",
-                speechModel: "phone_call",
-                action: nextAction,
-                method: "POST",
-            });
-            gather.play(fullAudioUrl);
-
-            // Fallback if no response
-            response.say(
-                {
-                    voice: "alice",
-                    language: "en-US",
-                },
-                "Let's continue."
-            );
-            response.redirect(nextAction);
-
-            return new NextResponse(response.toString(), {
-                headers: { "Content-Type": "text/xml" },
+            // Normal question flow
+            return createQuestionResponse({
+                audioUrl: fullAudioUrl,
+                actionUrl: nextAction,
+                noInputAction: nextAction,
+                noInputMessage: "Let's continue.",
             });
         } catch (ttsError) {
             console.error("[VOICE] TTS generation failed:", ttsError);
 
-            // Fallback to Twilio's built-in TTS using the library
-            const response = new twilio.twiml.VoiceResponse();
-
-            const gather = response.gather({
-                input: ["speech"],
-                speechTimeout: "3",
-                speechModel: "phone_call",
-                action: `${getAppUrl()}/api/webhooks/twilio/voice/${state}`,
-                method: "POST",
-            });
-
-            gather.say(
-                {
-                    voice: "alice",
-                    language: "en-US",
-                },
-                nextPrompt
-            );
-
-            response.say(
-                {
-                    voice: "alice",
-                    language: "en-US",
-                },
-                "Let's continue."
-            );
-            response.redirect(`${getAppUrl()}/api/webhooks/twilio/voice/closing`);
-
-            return new NextResponse(response.toString(), {
-                headers: { "Content-Type": "text/xml" },
+            // Fallback to Twilio's built-in TTS
+            return createQuestionResponse({
+                fallbackText: nextPrompt,
+                actionUrl: `${getAppUrl()}/api/webhooks/twilio/voice/${state}`,
+                noInputAction: `${getAppUrl()}/api/webhooks/twilio/voice/closing`,
+                noInputMessage: "Let's continue.",
             });
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error("[VOICE] Error:", error);
 
-        // Return error response using TwiML library
-        const response = new twilio.twiml.VoiceResponse();
-        response.say(
-            {
-                voice: "alice",
-                language: "en-US",
-            },
-            "I'm sorry, there was an error. Goodbye."
-        );
-        response.hangup();
-
-        return new NextResponse(response.toString(), {
-            headers: { "Content-Type": "text/xml" },
-        });
+        // Return error response
+        return createErrorResponse();
     }
 }
