@@ -46,3 +46,7 @@ Thumbs.db
 # Other common files to ignore
 coverage/
 .turbo/
+
+# Sentry
+.sentryclirc
+sentry.properties

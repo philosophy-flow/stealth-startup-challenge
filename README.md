@@ -22,17 +22,23 @@ An elderly care system that combines AI voice technology with real phone calls t
 
 -   **Real Phone Calls**: Uses Twilio to make actual outbound phone calls
 -   **Natural Conversation**: Structured flow with mood checks, schedule discussions, and medication reminders
--   **Cognitive Games**: Includes a number guessing game to engage patients
--   **Voice Options**: 6 different voice personalities to choose from
--   **Cost Optimized**: Each call costs less than $0.005 through careful model selection and prompt tuning
+-   **Cognitive Games**: Includes a number guessing game (1-10) with winner/loser feedback
+-   **Voice Options**: 6 different TTS personalities (alloy, echo, fable, onyx, nova, shimmer)
+-   **Cost Optimized**: Each call costs less than $0.005 through:
+    -   In-memory audio caching with deduplication
+    -   Request batching for identical prompts
+    -   Efficient token usage with gpt-4o-mini
 
 ### 👨‍👩‍👧‍👦 Family Dashboard
 
--   **Patient Management**: Add, edit, and delete patient profiles
--   **Call Triggering**: Initiate calls with one click
--   **Call History**: View detailed logs with transcripts and AI-generated summaries
--   **Mood Tracking**: Monitor happiness rates across all calls
--   **Statistics**: Track total patients, calls, and daily activity
+-   **Patient Management**: Add, edit, and delete patient profiles with voice selection
+-   **Responsive Design**:
+    -   Desktop: Table view with inline actions
+    -   Mobile: Card-based layout with optimized touch targets
+-   **Call Triggering**: One-click calling with location-aware confirmation dialogs
+-   **Call History**: Real-time updates via WebSocket with detailed modal views
+-   **Mood Tracking**: AI-powered context-aware mood detection (understands sarcasm/negation)
+-   **Statistics**: Live dashboard with TodaysCallsCount component using date-fns
 
 ### 🔐 Authentication System
 
@@ -200,32 +206,56 @@ Update `NEXT_PUBLIC_APP_URL` in `.env.local` with the ngrok URL.
 
 ```
 aviator-health-challenge/
-├── next/                             # Next.js application
-│   ├── src/
-│   │   ├── app/                      # App Router
-│   │   │   ├── (ui)/                 # UI routes (grouped for organization)
-│   │   │   │   ├── auth/             # Authentication page
-│   │   │   │   ├── dashboard/        # Protected dashboard pages
-│   │   │   │   └── page.tsx          # Root page
-│   │   │   └── api/                  # API endpoints
-│   │   │       ├── audio/cached/     # Audio streaming
-│   │   │       ├── calls/trigger/    # Initiate outbound calls
-│   │   │       └── webhooks/twilio/  # Voice webhooks (unified handler)
-│   │   ├── components/               # React components
-│   │   ├── lib/                      # Core third-party logic
-│   │   │   ├── supabase/             # Database clients & data access functions
-│   │   │   ├── twilio.ts             # Twilio SDK wrapper and webhook validation
-│   │   │   └── openai.ts             # AI/TTS services
-│   │   ├── utils/                    # Core non-third-party logic
-│   │   │   ├── audio.ts              # Audio caching and buffer management
-│   │   │   ├── calls.ts              # Call handling logic (state machine)
-│   │   │   ├── format.ts             # Phone number and text formatting utilities
-│   │   │   ├── logging.ts            # Cost tracking and logging utilities
-│   │   │   └── url.ts                # URL helper utilities
-│   │   └── types/                    # TypeScript definitions
-│   └── public/                       # Static assets
-├── schemas/                          # Database schemas
-└── docs/                             # Documentation
+├── README.md                         # This file - project overview
+└── next/                             # Next.js application
+    ├── schema.sql                    # Database schema definition
+    ├── src/
+    │   ├── app/                      # App Router
+    │   │   ├── (ui)/                 # UI routes (grouped for organization)
+    │   │   │   ├── auth/             # Authentication page
+    │   │   │   ├── dashboard/        # Protected dashboard pages
+    │   │   │   └── page.tsx          # Root page
+    │   │   └── api/                  # API endpoints
+    │   │       ├── audio/cached/     # Audio streaming from memory cache
+    │   │       ├── calls/trigger/    # Initiate outbound calls
+    │   │       └── webhooks/twilio/  # Voice webhooks (modular architecture)
+    │   │           ├── status/       # Call lifecycle tracking
+    │   │           └── voice/[state]/ # Dynamic state-based routing
+    │   │               ├── route.ts              # Main webhook handler
+    │   │               ├── initializeConnection.ts # Initial call setup
+    │   │               └── stateHandlers.ts      # State configuration
+    │   ├── components/               # React components (8 total)
+    │   │   ├── DesktopNav.tsx        # Desktop navigation with active states
+    │   │   ├── LogoutButton.tsx      # Reusable logout component
+    │   │   ├── MobileHeader.tsx      # Mobile page title header
+    │   │   ├── MobileNav.tsx         # Mobile hamburger navigation
+    │   │   ├── MobileNavWrapper.tsx  # Mobile nav with logout integration
+    │   │   ├── PatientCards.tsx      # Mobile-optimized patient cards
+    │   │   ├── PatientTable.tsx      # Desktop patient table view
+    │   │   └── TodaysCallsCount.tsx  # Real-time call counter
+    │   ├── lib/                      # Core third-party service integrations
+    │   │   ├── supabase/             # Database clients & data access
+    │   │   │   ├── admin.ts          # Service role client (webhooks)
+    │   │   │   ├── auth.ts           # Authentication operations
+    │   │   │   ├── calls.ts          # Call-related operations
+    │   │   │   ├── client.ts         # Browser-side client
+    │   │   │   ├── patients.ts       # Patient data operations
+    │   │   │   └── server.ts         # Server-side client
+    │   │   ├── twilio/               # Twilio voice services
+    │   │   │   ├── index.ts          # SDK wrapper and call initiation
+    │   │   │   └── twiml.ts          # TwiML response generators (5 functions)
+    │   │   └── openai.ts             # AI/TTS with request deduplication
+    │   ├── utils/                    # Core utilities and helpers
+    │   │   ├── audio.ts              # In-memory cache with auto-cleanup
+    │   │   ├── calls.ts              # Simplified state machine (95 lines)
+    │   │   ├── format.ts             # Phone number formatting
+    │   │   ├── logging.ts            # Cost tracking and logging
+    │   │   └── url.ts                # URL helpers (getAppUrl, makeAbsoluteUrl)
+    │   ├── types/                    # TypeScript definitions
+    │   │   ├── business.ts           # Core business types
+    │   │   └── components.ts         # Component prop interfaces
+    │   └── middleware.ts             # Authentication middleware
+    └── public/                       # Static assets
 ```
 
 ## 🏛️ Code Quality & Architecture
@@ -234,16 +264,16 @@ The codebase follows modern best practices for maintainability and scalability:
 
 ### Service Layer Architecture
 
--   **Modular Services**: Each external service (Twilio, OpenAI, Supabase) has its own module with clear interfaces
--   **Separation of Concerns**: Business logic separated from API routes, utilities (first-party logic) separated from vendor logic (lib)
+-   **Modular Services**: Each external service has dedicated modules:
+    -   Supabase: 3 clients (admin, client, server) + 3 helper modules (auth, calls, patients)
+    -   Twilio: SDK wrapper + TwiML generator with 5 response functions
+    -   OpenAI: TTS + AI analysis with request deduplication
+-   **Separation of Concerns**:
+    -   `/lib/` - Third-party service integrations
+    -   `/utils/` - First-party business logic and helpers
+    -   `/types/` - Centralized TypeScript definitions
 -   **Type Safety**: Full TypeScript coverage with proper interfaces for all data flows
 
-### Recent Improvements
-
--   **70% Code Reduction**: Simplified call flow from 320 to 95 lines while maintaining functionality
--   **Centralized Error Handling**: Consistent logging and error patterns across all modules
--   **Improved Modularity**: Extracted database operations, call handling, and logging into dedicated modules
--   **Better Cost Tracking**: Accurate OpenAI usage tracking using actual API response token counts
 
 ## 💰 Cost Analysis
 
