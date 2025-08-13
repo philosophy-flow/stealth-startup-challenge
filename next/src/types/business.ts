@@ -41,7 +41,6 @@ export enum CallState {
     SCHEDULE_CHECK = "schedule_check",
     MEDICATION_REMINDER = "medication_reminder",
     NUMBER_GAME = "number_game",
-    NUMBER_GAME_RESPONSE = "number_game_response",
     CLOSING = "closing",
     ERROR = "error",
     END = "end",
@@ -87,4 +86,13 @@ export interface PlayHangupOptions {
 export interface ErrorOptions {
     message?: string; // Default: "I'm sorry, there was an error. Goodbye."
     voice?: TwilioVoice; // Default: 'alice'
+}
+
+export interface StateHandler {
+    processResponse?: (speechResult: string, responseData: Record<string, unknown>) => void;
+    getPrompt: (responseData?: Record<string, unknown>) => string;
+    urlPath: string;
+    speechModel?: "phone_call" | "numbers_and_commands";
+    speechTimeout?: number;
+    noInputActionPath?: string;
 }

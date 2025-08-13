@@ -35,8 +35,6 @@ export function getNextState(currentState: CallState): CallState {
         case CallState.MEDICATION_REMINDER:
             return CallState.NUMBER_GAME;
         case CallState.NUMBER_GAME:
-            return CallState.NUMBER_GAME_RESPONSE;
-        case CallState.NUMBER_GAME_RESPONSE:
             return CallState.CLOSING;
         case CallState.CLOSING:
             return CallState.END;
