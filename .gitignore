@@ -13,6 +13,7 @@ SCALE-STRATEGY.md
 node_modules
 .claude/
 SENTRY.md
+TESTING.md
 
 # Next.js build output
 .next/
