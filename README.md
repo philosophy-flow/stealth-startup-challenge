@@ -274,7 +274,6 @@ The codebase follows modern best practices for maintainability and scalability:
     -   `/types/` - Centralized TypeScript definitions
 -   **Type Safety**: Full TypeScript coverage with proper interfaces for all data flows
 
-
 ## 💰 Cost Analysis
 
 The system is optimized for low operational costs with precise tracking:
@@ -293,6 +292,30 @@ The system is optimized for low operational costs with precise tracking:
 -   **Input Validation**: All forms validate data before submission
 -   **Secure Sessions**: HTTPOnly cookies with CSRF protection
 -   **No Stored Credentials**: All sensitive data in environment variables
+
+## 📊 Monitoring & Observability
+
+The application includes comprehensive error monitoring and performance tracking via **Sentry**:
+
+### What's Monitored
+
+-   **Automatic Error Capture**: All unhandled exceptions, promise rejections, and React errors
+-   **Explicit Error Logging**: Structured logging via centralized `utils/logging.ts`
+-   **Performance Tracking**: Browser traces and router transitions (10% sample rate in production)
+-   **Session Replays**: Captured on errors only in production for cost optimization
+
+### Privacy & Security
+
+-   **Masked Replays**: All text and inputs are masked in session replays (`maskAllText: true`)
+-   **Filtered Noise**: Browser extension errors and ResizeObserver warnings excluded
+-   **Ad-Blocker Resilient**: Uses tunnel route (`/monitoring`) to ensure data delivery
+
+### Implementation Highlights
+
+-   **Breadcrumbs**: Every `log()` call adds context for debugging
+-   **Cost-Optimized**: Production captures replays only on errors (0% normal sessions)
+-   **Environment-Aware**: Different sampling rates for dev (100%) vs prod (10%)
+-   **Centralized**: All explicit error handling flows through `utils/logging.ts`
 
 ## 📖 Post-Mortem
 

@@ -12,9 +12,7 @@ DATA-FLOW-ANALYSIS.md
 SCALE-STRATEGY.md
 node_modules
 .claude/
-SENTRY-SETUP.md
-SENTRY-IMPLEMENTATION.md
-
+SENTRY.md
 
 # Next.js build output
 .next/
