@@ -19,6 +19,12 @@ const formatTwiMLResponse = (response: twilio.twiml.VoiceResponse): NextResponse
         headers: { "Content-Type": "text/xml" },
     });
 
+// Helper: Get voice configuration
+const getVoiceConfig = (voice?: TwilioVoice) => ({
+    voice: voice || TWIML_DEFAULTS.voice,
+    language: TWIML_DEFAULTS.language,
+});
+
 // Helper: Add voice message to the call (audio file or text-to-speech)
 const addVoiceMessage = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +70,7 @@ export function createQuestionResponse(options: QuestionOptions): NextResponse {
 
     // Add no-input fallback
     if (noInputMessage) {
-        response.say({ voice: TWIML_DEFAULTS.voice, language: TWIML_DEFAULTS.language }, noInputMessage);
+        response.say(getVoiceConfig(), noInputMessage);
     }
 
     if (noInputAction) {
@@ -90,10 +96,7 @@ export function createPlayAndHangupResponse(options: PlayHangupOptions = {}): Ne
 export function createErrorResponse(options: ErrorOptions = {}): NextResponse {
     const response = new twilio.twiml.VoiceResponse();
     response.say(
-        {
-            voice: options.voice || TWIML_DEFAULTS.voice,
-            language: TWIML_DEFAULTS.language,
-        },
+        getVoiceConfig(options.voice),
         options.message || TWIML_DEFAULTS.errorMessage
     );
     response.hangup();
@@ -106,47 +109,5 @@ export function createErrorResponse(options: ErrorOptions = {}): NextResponse {
 export function createSimpleHangupResponse(): NextResponse {
     const response = new twilio.twiml.VoiceResponse();
     response.hangup();
-    return formatTwiMLResponse(response);
-}
-
-/**
- * Greet the caller, then ask the first question
- */
-export function createGreetingWithQuestion(
-    greetingAudioUrl?: string,
-    greetingText?: string,
-    questionOptions?: QuestionOptions
-): NextResponse {
-    const response = new twilio.twiml.VoiceResponse();
-
-    // Add greeting first (outside of gather)
-    addVoiceMessage(response, greetingAudioUrl, greetingText);
-
-    // Then add the gather for the actual question
-    if (questionOptions) {
-        const gather = response.gather({
-            input: ["speech"],
-            speechTimeout: (questionOptions.speechTimeout || TWIML_DEFAULTS.speechTimeout).toString(),
-            speechModel: questionOptions.speechModel || TWIML_DEFAULTS.speechModel,
-            action: questionOptions.actionUrl,
-            method: TWIML_DEFAULTS.method,
-        });
-
-        // Add the question audio/text to the gather
-        addVoiceMessage(gather, questionOptions.audioUrl, questionOptions.fallbackText);
-
-        // Add no-input fallback
-        if (questionOptions.noInputMessage) {
-            response.say(
-                { voice: TWIML_DEFAULTS.voice, language: TWIML_DEFAULTS.language },
-                questionOptions.noInputMessage
-            );
-        }
-
-        if (questionOptions.noInputAction) {
-            response.redirect(questionOptions.noInputAction);
-        }
-    }
-
     return formatTwiMLResponse(response);
 }

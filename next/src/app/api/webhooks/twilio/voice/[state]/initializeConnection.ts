@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateTwilioWebhook } from "@/lib/twilio";
 import { getCallWithPatient, updateCallStatus, updateResponseData } from "@/lib/supabase/calls";
-import { createErrorResponse, createSimpleHangupResponse, createGreetingWithQuestion } from "@/lib/twilio/twiml";
+import { createErrorResponse, createSimpleHangupResponse, createQuestionResponse } from "@/lib/twilio/twiml";
 import { generateTTS } from "@/lib/openai";
 import { getAppUrl, makeAbsoluteUrl } from "@/utils/url";
 import { log, logError } from "@/utils/logging";
@@ -70,22 +70,21 @@ export async function initializeConnection(
 
     const patientVoice = (callRecord.patient.voice || "nova") as VoiceType;
 
-    // Generate greeting and mood question
+    // Generate combined greeting and mood question
     const greetingText = `Hi ${callRecord.patient.first_name}, this is your daily check-in call.`;
     const moodQuestion = "How are you feeling today?";
+    const combinedText = `${greetingText} ${moodQuestion}`;
 
-    log("VOICE", `Generating TTS for greeting: ${greetingText}`);
+    log("VOICE", `Generating TTS for greeting: ${combinedText}`);
     log("VOICE", `Using voice: ${patientVoice}`);
 
     // Generate TTS audio
     try {
-        const greetingAudioUrl = await generateTTS(greetingText, patientVoice);
-        const moodAudioUrl = await generateTTS(moodQuestion, patientVoice);
+        const combinedAudioUrl = await generateTTS(combinedText, patientVoice);
 
-        // Make URLs absolute
+        // Make URL absolute
         const baseUrl = getAppUrl();
-        const fullGreetingUrl = makeAbsoluteUrl(greetingAudioUrl);
-        const fullMoodUrl = makeAbsoluteUrl(moodAudioUrl);
+        const fullAudioUrl = makeAbsoluteUrl(combinedAudioUrl);
 
         log("VOICE", "TTS generated successfully");
 
@@ -95,9 +94,9 @@ export async function initializeConnection(
             call_transcript: `System: ${greetingText}\nSystem: ${moodQuestion}\n`,
         });
 
-        // Generate TwiML with greeting and question
-        return createGreetingWithQuestion(fullGreetingUrl, undefined, {
-            audioUrl: fullMoodUrl,
+        // Generate TwiML with combined greeting and question
+        return createQuestionResponse({
+            audioUrl: fullAudioUrl,
             actionUrl: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
             noInputAction: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
             noInputMessage: "I didn't hear a response. Let's continue.",
@@ -107,8 +106,8 @@ export async function initializeConnection(
 
         // Fallback to Twilio's built-in TTS
         const baseUrl = getAppUrl();
-        return createGreetingWithQuestion(undefined, greetingText, {
-            fallbackText: moodQuestion,
+        return createQuestionResponse({
+            fallbackText: combinedText,
             actionUrl: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
             noInputAction: `${baseUrl}/api/webhooks/twilio/voice/mood_check`,
             noInputMessage: "I didn't hear a response. Let's continue.",
