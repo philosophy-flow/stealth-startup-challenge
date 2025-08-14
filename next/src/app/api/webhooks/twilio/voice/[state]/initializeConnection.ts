@@ -13,7 +13,9 @@ export async function initializeConnection(
     answeredBy: string | undefined,
     twilioParams: TwilioStatusParams
 ): Promise<NextResponse> {
-    log("VOICE", `Initial connection, AnsweredBy: ${answeredBy}`);
+    if (answeredBy) {
+        log("VOICE", `Call answered by: ${answeredBy}`);
+    }
 
     // Validate Twilio webhook signature for initial connection
     const signature = request.headers.get("X-Twilio-Signature");
@@ -75,9 +77,6 @@ export async function initializeConnection(
     const moodQuestion = "How are you feeling today?";
     const combinedText = `${greetingText} ${moodQuestion}`;
 
-    log("VOICE", `Generating TTS for greeting: ${combinedText}`);
-    log("VOICE", `Using voice: ${patientVoice}`);
-
     // Generate TTS audio
     try {
         const combinedAudioUrl = await generateTTS(combinedText, patientVoice);
@@ -85,8 +84,6 @@ export async function initializeConnection(
         // Make URL absolute
         const baseUrl = getAppUrl();
         const fullAudioUrl = makeAbsoluteUrl(combinedAudioUrl);
-
-        log("VOICE", "TTS generated successfully");
 
         // Add greeting and mood question to transcript
         await updateResponseData(callSid, {

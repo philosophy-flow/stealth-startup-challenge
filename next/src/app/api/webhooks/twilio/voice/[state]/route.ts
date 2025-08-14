@@ -1,15 +1,7 @@
 import { NextRequest } from "next/server";
 import { getCallWithPatient, updateResponseData } from "@/lib/supabase/calls";
-import {
-    createQuestionResponse,
-    createPlayAndHangupResponse,
-    createErrorResponse,
-} from "@/lib/twilio/twiml";
-import {
-    getNextState,
-    parseTwilioFormData,
-    generateTTSWithFallback,
-} from "@/utils/calls";
+import { createQuestionResponse, createPlayAndHangupResponse, createErrorResponse } from "@/lib/twilio/twiml";
+import { getNextState, parseTwilioFormData, generateTTSWithFallback } from "@/utils/calls";
 import { getAppUrl } from "@/utils/url";
 import { log, logError } from "@/utils/logging";
 import { CallState } from "@/types/business";
@@ -30,8 +22,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
         const speechResult = twilioParams.SpeechResult || "";
         const answeredBy = twilioParams.AnsweredBy;
 
-        log("VOICE", `State: ${currentState}, CallSid: ${callSid}`);
-        log("VOICE", `Speech result: "${speechResult}"`);
+        if (speechResult) {
+            log("VOICE", `State: ${currentState}, Speech: "${speechResult}"`);
+        }
 
         // Handle initial connection
         if (currentState === "initial") {
@@ -93,8 +86,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
 
         // If we're ending the call
         if (nextState === CallState.END || state === CallState.CLOSING) {
-            log("VOICE", "Call ending");
-
             // Generate closing message based on context
             const closingText = `Thank you, ${callRecord.patient.first_name}. Have a wonderful day!`;
 
@@ -118,7 +109,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
             transcript += `System: ${nextPrompt}\n`;
         }
 
-        log("VOICE", `Moving to state: ${nextState}, prompt: ${nextPrompt}`);
+        log("VOICE", `Next state: ${nextState}`);
 
         // Generate TTS for next prompt
         const { audioUrl, fallbackText } = await generateTTSWithFallback(nextPrompt, patientVoice);
@@ -136,8 +127,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ st
             actionUrl: nextAction,
             speechTimeout: nextHandler.speechTimeout,
             speechModel: nextHandler.speechModel,
-            noInputAction: nextHandler.noInputActionPath 
-                ? `${baseUrl}/api/webhooks/twilio/voice/${nextHandler.noInputActionPath}` 
+            noInputAction: nextHandler.noInputActionPath
+                ? `${baseUrl}/api/webhooks/twilio/voice/${nextHandler.noInputActionPath}`
                 : nextAction,
             noInputMessage: "Let's continue.",
         });

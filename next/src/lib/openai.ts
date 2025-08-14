@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { getFromCache, storeAudio, generateAudioId } from "@/utils/audio";
-import { logCost, calculateTTSCost } from "@/utils/logging";
+import { log, logError, logCost, calculateTTSCost } from "@/utils/logging";
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY!,
@@ -22,12 +22,12 @@ export async function generateTTS(
         const requestKey = `${text}\x00${voice}`;
         const pending = pendingRequests.get(requestKey);
         if (pending) {
-            console.log(`[TTS] Waiting for pending request: "${text.substring(0, 50)}..." with voice: ${voice}`);
+            log("TTS", `Waiting for pending request: "${text.substring(0, 50)}..." with voice: ${voice}`);
             const audioId = generateAudioId(text, voice);
             return `/api/audio/cached/${audioId}`;
         }
 
-        console.log(`[TTS] Generating new audio for: "${text.substring(0, 50)}..." with voice: ${voice}`);
+        log("TTS", `Generating new audio for: "${text.substring(0, 50)}..." with voice: ${voice}`);
 
         const cost = calculateTTSCost(text);
         logCost("TTS", cost, {
@@ -58,7 +58,7 @@ export async function generateTTS(
             pendingRequests.delete(requestKey);
         }
     } catch (error) {
-        console.error("[TTS] Error generating audio:", error);
+        logError("TTS", "Error generating audio", error);
         throw error;
     }
 }
@@ -105,7 +105,7 @@ export async function generateCallSummary(
 
         return { summary, mood };
     } catch (error) {
-        console.error("[GPT] Error generating summary:", error);
+        logError("GPT", "Error generating summary", error);
         return { summary: "Unable to generate summary.", mood: "unknown" };
     }
 }

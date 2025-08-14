@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/nextjs';
+import * as Sentry from "@sentry/nextjs";
 
 // Cost tracking for monitoring
 const COSTS = {
@@ -18,30 +18,18 @@ export function calculateTTSCost(text: string): number {
 export function logCost(service: string, cost: number, details?: any): void {
     const message = `[COST] ${service}: $${cost.toFixed(4)}`;
     console.log(message, details);
-    
-    // Add breadcrumb for cost tracking
-    Sentry.addBreadcrumb({
-        message: `Cost: ${service}`,
-        category: 'cost',
-        level: 'info',
-        data: { service, cost, ...details },
-    });
-    
-    // Add cost as a tag for tracking (metrics API is retired in Sentry v10)
-    Sentry.setTag(`cost.${service}`, cost.toFixed(4));
 }
 
 // General logging utilities
 export function log(prefix: string, message: string): void {
     const logMessage = `[${prefix}] ${message}`;
     console.log(logMessage);
-    
+
     // Add breadcrumb for debugging
     Sentry.addBreadcrumb({
         message,
         category: prefix.toLowerCase(),
-        level: 'info',
-        timestamp: Date.now() / 1000,
+        level: "info",
     });
 }
 
@@ -49,8 +37,16 @@ export function log(prefix: string, message: string): void {
 export function logError(prefix: string, message: string, error?: any): void {
     const errorMessage = `[${prefix}] ${message}`;
     console.error(errorMessage, error);
-    
-    // Capture exception in Sentry
+
+    // Add breadcrumb before capturing exception
+    Sentry.addBreadcrumb({
+        message: errorMessage,
+        category: prefix.toLowerCase(),
+        level: "error",
+        data: error ? { error: String(error) } : undefined,
+    });
+
+    // capture handled exception in Sentry
     if (error) {
         Sentry.captureException(error, {
             tags: {
@@ -63,15 +59,6 @@ export function logError(prefix: string, message: string, error?: any): void {
         });
     } else {
         // If no error object, capture as message
-        Sentry.captureMessage(errorMessage, 'error');
+        Sentry.captureMessage(errorMessage, "error");
     }
-    
-    // Add breadcrumb for error tracking
-    Sentry.addBreadcrumb({
-        message,
-        category: prefix.toLowerCase(),
-        level: 'error',
-        data: { error: error?.message || error },
-        timestamp: Date.now() / 1000,
-    });
 }

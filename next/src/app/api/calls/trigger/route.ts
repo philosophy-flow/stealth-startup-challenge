@@ -19,12 +19,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Patient not found or unauthorized" }, { status: 404 });
         }
 
-        log("TRIGGER", `Initiating call to: ${patient.phone_number}`);
-
         // Initiate the call via Twilio
         const call = await initiatePatientCall(patient.phone_number);
 
-        log("TRIGGER", `Call initiated with SID: ${call.sid}`);
+        log("TRIGGER", `Call initiated: ${call.sid} to ${patient.first_name} ${patient.last_name}`);
 
         // Create call record in database
         let callRecord;
@@ -43,12 +41,12 @@ export async function POST(request: NextRequest) {
             message: `Call initiated to ${patient.first_name} ${patient.last_name}`,
         });
     } catch (error) {
+        logError("TRIGGER", "Error initiating call", error);
+        
         if (error instanceof Error) {
-            logError("TRIGGER", "Error initiating call", error);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
-
-        logError("TRIGGER", "Error initiating call", error);
+        
         return NextResponse.json({ error: "Failed to initiate call" }, { status: 500 });
     }
 }

@@ -2,7 +2,7 @@ import { CallState } from "@/types/business";
 import type { CallUpdateData, Call, Patient, VoiceType } from "@/types/business";
 import type { TwilioStatusParams } from "@/types/business";
 import { generateCallSummary, generateTTS } from "@/lib/openai";
-import { log, logError, calculateTTSCost, logCost } from "@/utils/logging";
+import { log, logError } from "@/utils/logging";
 import { makeAbsoluteUrl } from "@/utils/url";
 
 // Yes/No response patterns
@@ -169,14 +169,6 @@ export async function processCallCompletion(
             responseData.call_summary = "Call completed successfully.";
             responseData.overall_mood = "unknown";
         }
-
-        // Log cost estimate
-        const cost = calculateTTSCost(transcript);
-        logCost("TTS", cost, {
-            callSid: callRecord.call_sid,
-            characterCount: transcript.length,
-        });
-        log("STATUS", `Call completed. Estimated TTS cost: $${cost.toFixed(4)} for ${transcript.length} characters`);
     }
 
     return buildCallUpdateData(mappedStatus, callDuration, responseData);
