@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Users, Phone, Calendar, Smile } from "lucide-react";
 
-import { getPatients, getCalls, getMoodStats } from "@/dal/patients";
+import { getPatients, getCalls, getMoodStats } from "@/lib/supabase/patients";
 import { TodaysCallsCount } from "@/components/TodaysCallsCount";
 
 export default async function DashboardPage() {

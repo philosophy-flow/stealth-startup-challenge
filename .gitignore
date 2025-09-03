@@ -8,8 +8,12 @@ temp/
 CLAUDE.md
 GAME-PLAN.md
 DOCUMENTATION.md
+DATA-FLOW-ANALYSIS.md
+SCALE-STRATEGY.md
 node_modules
-
+.claude/
+SENTRY.md
+TESTING.md
 
 # Next.js build output
 .next/
@@ -43,3 +47,7 @@ Thumbs.db
 # Other common files to ignore
 coverage/
 .turbo/
+
+# Sentry
+.sentryclirc
+sentry.properties

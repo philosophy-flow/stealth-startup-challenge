@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, User } from "lucide-react";
-import { getPatients } from "@/dal/patients";
+import { getPatients } from "@/lib/supabase/patients";
 import PatientTable from "@/components/PatientTable";
 import PatientCards from "@/components/PatientCards";
 
@@ -41,7 +41,7 @@ export default async function PatientsPage() {
                 <>
                     {/* Mobile cards view */}
                     <PatientCards patients={patients} />
-                    
+
                     {/* Desktop table view */}
                     <div className="hidden lg:block">
                         <PatientTable patients={patients} />

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { logoutUser, getUser } from "@/dal/auth";
+import { logoutUser, getUser } from "@/lib/supabase/auth";
 import LogoutButton from "@/components/LogoutButton";
 import MobileNavWrapper from "@/components/MobileNavWrapper";
 import MobileHeader from "@/components/MobileHeader";
@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex h-screen bg-gray-100">
             {/* Mobile Navigation */}
             <MobileNavWrapper userEmail={user.email!} logoutAction={logoutUser} />
-            
+
             {/* Mobile Header - only visible on mobile */}
             <MobileHeader />
 

@@ -33,3 +33,66 @@ export interface Call {
     created_at: string;
     patient?: Patient;
 }
+
+// Conversation states for the call flow
+export enum CallState {
+    GREETING = "greeting",
+    MOOD_CHECK = "mood_check",
+    SCHEDULE_CHECK = "schedule_check",
+    MEDICATION_REMINDER = "medication_reminder",
+    NUMBER_GAME = "number_game",
+    CLOSING = "closing",
+    ERROR = "error",
+    END = "end",
+}
+
+// Type for Twilio status webhook parameters
+export interface TwilioStatusParams {
+    CallSid: string;
+    CallStatus: string;
+    CallDuration?: string;
+    [key: string]: string | undefined;
+}
+
+export interface CallUpdateData {
+    status?: "completed" | "failed" | "in_progress";
+    call_duration?: number;
+    response_data?: Record<string, unknown>;
+    [key: string]: unknown; // Allow additional properties for Supabase
+}
+
+// Type for valid Twilio voice options
+export type TwilioVoice = "alice" | "man" | "woman" | "Polly.Matthew" | "Polly.Joanna" | "Polly.Ivy" | "Polly.Joey";
+
+// Options for asking a question and waiting for response
+export interface QuestionOptions {
+    audioUrl?: string; // OpenAI TTS audio URL
+    fallbackText?: string; // Text for Twilio's built-in voice if no audio
+    actionUrl: string; // Where to send the response
+    speechTimeout?: number; // Default: 3
+    speechModel?: "phone_call" | "numbers_and_commands"; // Default: 'phone_call'
+    noInputAction?: string; // URL to redirect if no input
+    noInputMessage?: string; // Message before redirect (default: "Let's continue.")
+}
+
+// Options for play and hangup responses
+export interface PlayHangupOptions {
+    audioUrl?: string;
+    fallbackText?: string;
+    voice?: TwilioVoice; // Default: 'alice'
+}
+
+// Options for error responses
+export interface ErrorOptions {
+    message?: string; // Default: "I'm sorry, there was an error. Goodbye."
+    voice?: TwilioVoice; // Default: 'alice'
+}
+
+export interface StateHandler {
+    processResponse?: (speechResult: string, responseData: Record<string, unknown>) => void;
+    getPrompt: (responseData?: Record<string, unknown>) => string;
+    urlPath: string;
+    speechModel?: "phone_call" | "numbers_and_commands";
+    speechTimeout?: number;
+    noInputActionPath?: string;
+}
